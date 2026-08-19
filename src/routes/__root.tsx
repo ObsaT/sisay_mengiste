@@ -4,12 +4,9 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 
-import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../contexts/auth-context";
 
@@ -74,57 +71,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
-      { name: "description", content: "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
-      { property: "og:description", content: "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
-      { name: "twitter:description", content: "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3eae195b711831330e1f579134533aad/id-preview-972c8d84--fdc763e1-9d8d-4c4a-9726-ad8870b2f2be.lovable.app-1787043539314.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3eae195b711831330e1f579134533aad/id-preview-972c8d84--fdc763e1-9d8d-4c4a-9726-ad8870b2f2be.lovable.app-1787043539314.png" },
-    ],
-    links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Noto+Serif+Ethiopic:wght@500;600;700;800&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body suppressHydrationWarning>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
