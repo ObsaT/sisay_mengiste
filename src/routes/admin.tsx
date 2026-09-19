@@ -1,13 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useMatches } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  LayoutDashboard,
-  FileText,
-  PlusCircle,
-  LogOut,
-  Newspaper,
-} from "lucide-react";
+import { LayoutDashboard, FileText, PlusCircle, LogOut, Newspaper } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -47,7 +41,10 @@ function AdminLayout() {
             <ol className="list-inside list-decimal space-y-1">
               <li>Create a Firebase project at console.firebase.google.com</li>
               <li>Enable Authentication (Email/Password) and Firestore</li>
-              <li>Copy your web app config into the <code className="rounded bg-background px-1">.env</code> file</li>
+              <li>
+                Copy your web app config into the{" "}
+                <code className="rounded bg-background px-1">.env</code> file
+              </li>
               <li>Restart the dev server</li>
             </ol>
           </div>
@@ -78,7 +75,7 @@ function AdminLayout() {
 
   const navItems = [
     { to: "/admin" as const, label: "Dashboard", icon: LayoutDashboard, exact: true },
-    { to: "/admin/articles" as const, label: "Articles", icon: FileText },
+    { to: "/admin/articles/" as const, label: "Articles", icon: FileText },
   ];
 
   return (

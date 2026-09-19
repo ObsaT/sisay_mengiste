@@ -2,17 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { NAV, SECTION_TO_SLUG } from "@/lib/news-data";
+import { ArticleCard } from "@/components/article-card";
+import { SkeletonCard, SkeletonHero } from "@/components/skeleton-card";
+import { useLanguage } from "@/contexts/language-context";
 import {
   getPublishedArticles,
   getFeaturedArticle,
   getBreakingNews,
   getMostRead,
   getOpinionArticles,
+  getLocalizedArticleContent,
   articleSlug,
   timeAgo,
   type Article,
 } from "@/lib/firestore-service";
+import { translateText } from "@/lib/translation-service";
+import { TrendingUp, Clock, Flame, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,75 +25,46 @@ export const Route = createFileRoute("/")({
       { title: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
       {
         name: "description",
-        content:
-          "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።",
-      },
-      { property: "og:title", content: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
-      {
-        property: "og:description",
         content: "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።",
       },
+      { property: "og:title", content: "ሲሳይ መንግስቴ | Sisay Mengiste" },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://ethiopian-reporter-creations.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://ethiopian-reporter-creations.lovable.app/" }],
   }),
   component: Home,
 });
 
-function Meta({ article }: { article: Article }) {
-  return (
-    <p className="mt-2 text-xs text-muted-foreground">
-      <span className="font-semibold text-foreground/80">{article.author}</span>
-      <span className="mx-2 opacity-40">·</span>
-      {timeAgo(article.createdAt)}
-    </p>
-  );
-}
-
-function ArticleLink({
-  article,
-  className,
-}: {
-  article: Article;
-  className?: string;
-}) {
-  return (
-    <Link
-      to="/article/$slug"
-      params={{ slug: articleSlug(article.title) }}
-      className={className ?? "headline-link"}
-    >
-      {article.title}
-    </Link>
-  );
-}
-
 function SectionTitle({
   children,
   moreSlug,
+  moreLabel,
 }: {
-  children: string;
+  children: React.ReactNode;
   moreSlug?: string;
+  moreLabel?: string;
 }) {
   return (
-    <div className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-3">
-      <h2 className="rule-heading text-2xl tracking-tight">{children}</h2>
-      {moreSlug ? (
+    <div className="mb-6 flex items-center justify-between border-b-2 border-border pb-3">
+      <h2 className="rule-heading font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+        {children}
+      </h2>
+      {moreSlug && (
         <Link
           to="/category/$slug"
           params={{ slug: moreSlug }}
-          className="kicker text-primary hover:underline"
+          className="group flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
         >
-          ሁሉንም ይመልከቱ
+          <span>{moreLabel || "ሁሉንም ይመልከቱ"}</span>
+          <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
-      ) : null}
+      )}
     </div>
   );
 }
 
 function Home() {
+  const { t, language, categories, getCategoryLabel } = useLanguage();
   const [featured, setFeatured] = useState<Article | null>(null);
   const [allPublished, setAllPublished] = useState<Article[]>([]);
   const [breakingNews, setBreakingNews] = useState<Article[]>([]);
@@ -96,10 +72,14 @@ function Home() {
   const [opinion, setOpinion] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Hero auto-translated state
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroExcerpt, setHeroExcerpt] = useState("");
+
   useEffect(() => {
     Promise.all([
       getFeaturedArticle(),
-      getPublishedArticles(),
+      getPublishedArticles(30),
       getBreakingNews(),
       getMostRead(),
       getOpinionArticles(),
@@ -115,154 +95,203 @@ function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  const side = allPublished
-    .filter((a) => a.id !== featured?.id)
-    .slice(0, 2);
+  // Update Hero title & excerpt when featured or language changes
+  useEffect(() => {
+    if (!featured) return;
+    const loc = getLocalizedArticleContent(featured, language);
+    if (loc.isTranslated || loc.sourceLang === language) {
+      setHeroTitle(loc.title);
+      setHeroExcerpt(loc.excerpt);
+      return;
+    }
+
+    setHeroTitle(featured.title);
+    setHeroExcerpt(featured.excerpt);
+
+    let active = true;
+    Promise.all([
+      translateText(featured.title, loc.sourceLang, language),
+      featured.excerpt
+        ? translateText(featured.excerpt, loc.sourceLang, language)
+        : Promise.resolve(""),
+    ])
+      .then(([t, e]) => {
+        if (active) {
+          setHeroTitle(t);
+          setHeroExcerpt(e);
+        }
+      })
+      .catch((err) => {
+        console.warn("Hero translation error:", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [featured, language]);
+
+  const side = allPublished.filter((a) => a.id !== featured?.id).slice(0, 3);
   const grid = allPublished
     .filter((a) => a.id !== featured?.id && !side.find((s) => s.id === a.id))
     .slice(0, 6);
   const breakingTexts = breakingNews.map((a) => a.title);
-  const catPills = NAV.filter((n) => n.slug);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary">
       <SiteHeader />
 
-      {/* Breaking ticker */}
+      {/* ── Modern Breaking News Ticker ─────────────────────── */}
       {breakingTexts.length > 0 && (
-        <div className="flex items-center gap-0 overflow-hidden border-b border-border bg-paper-deep">
-          <span className="kicker shrink-0 bg-primary px-4 py-2.5 text-primary-foreground">
-            ወቅታዊ
-          </span>
-          <div className="relative flex-1 overflow-hidden">
-            <div className="animate-ticker flex w-max gap-10 whitespace-nowrap py-2.5 text-sm">
-              {[...breakingTexts, ...breakingTexts].map((b, i) => (
-                <Link
-                  key={i}
-                  to="/category/$slug"
-                  params={{ slug: "news" }}
-                  className="headline-link"
-                >
-                  <span className="text-primary">◆</span> {b}
-                </Link>
-              ))}
+        <div className="relative border-b border-border/80 bg-muted/40 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-7xl items-center px-4 py-2 text-xs">
+            {/* Pulsing live badge */}
+            <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-primary mr-4 shrink-0 bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-[11px] font-black">{t("breaking")}</span>
+            </div>
+
+            {/* Smooth Marquee */}
+            <div className="relative flex-1 overflow-hidden">
+              <div className="animate-ticker flex w-max gap-10 whitespace-nowrap text-xs font-medium text-foreground/80 hover:[animation-play-state:paused]">
+                {[...breakingTexts, ...breakingTexts].map((title, i) => (
+                  <Link
+                    key={i}
+                    to="/article/$slug"
+                    params={{ slug: articleSlug(title) }}
+                    className="headline-link flex items-center gap-2 hover:text-primary transition-colors"
+                  >
+                    <span className="text-primary text-[10px]">◆</span>
+                    <span>{title}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <main className="mx-auto max-w-7xl px-4 py-10">
+      {/* ── Main News Container ────────────────────────────── */}
+      <main className="mx-auto max-w-7xl px-4 py-8 flex-1 w-full">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
+          <>
+            <SkeletonHero />
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </>
         ) : allPublished.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-lg text-muted-foreground">
-              ምንም ዘገባ አልተገኘም። ከAdmin Dashboard ዘገባዎችን ያ sediment.
-            </p>
+          <div className="rounded-2xl border border-dashed border-border p-16 text-center">
+            <p className="text-lg font-medium text-muted-foreground">{t("noArticles")}</p>
             <Link
               to="/admin"
-              className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              className="mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors"
             >
-              Go to Admin
+              {t("adminDashboard")}
             </Link>
           </div>
         ) : (
           <>
-            {/* Lead */}
-            <section className="animate-rise grid gap-8 lg:grid-cols-[1.7fr_1fr]">
+            {/* ── Editorial Top Lead Section ────────────────── */}
+            <section className="animate-rise grid gap-8 lg:grid-cols-[1.75fr_1fr]">
+              {/* Featured Primary Hero Card */}
               {featured ? (
-                <article className="group relative overflow-hidden rounded-md bg-ink">
+                <article className="group relative flex flex-col justify-end overflow-hidden rounded-2xl bg-ink shadow-xl min-h-[420px] sm:min-h-[500px]">
                   {featured.image ? (
                     <img
                       src={featured.image}
-                      alt={featured.title}
+                      alt={heroTitle || featured.title}
                       width={1600}
                       height={1000}
-                      className="h-full max-h-[540px] w-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-[1.03]"
+                      loading="eager"
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                   ) : (
-                    <div className="h-full min-h-[300px] w-full bg-ink/80" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 to-neutral-950" />
                   )}
+
+                  {/* Gradient mask for text contrast */}
                   <div
                     className="pointer-events-none absolute inset-0"
                     style={{ backgroundImage: "var(--gradient-ink)" }}
                   />
-                  <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-                    <span className="kicker bg-primary px-2 py-1 text-primary-foreground">
-                      {featured.section}
+
+                  {/* Hero Content */}
+                  <div className="relative z-10 p-6 sm:p-8">
+                    <span className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md">
+                      {getCategoryLabel(featured.section) || featured.section}
                     </span>
-                    <h1 className="mt-4 max-w-3xl text-2xl leading-snug text-ink-foreground sm:text-4xl">
-                      <ArticleLink
-                        article={featured}
-                        className="hover:underline"
-                      />
+
+                    <h1 className="mt-4 max-w-3xl font-display text-2xl sm:text-4xl font-black leading-tight text-ink-foreground">
+                      <Link
+                        to="/article/$slug"
+                        params={{ slug: articleSlug(featured.title) }}
+                        className="hover:text-gold transition-colors"
+                      >
+                        {heroTitle || featured.title}
+                      </Link>
                     </h1>
-                    {featured.excerpt && (
-                      <p className="mt-3 max-w-2xl text-sm text-ink-foreground/75 sm:text-base">
-                        {featured.excerpt}
+
+                    {(heroExcerpt || featured.excerpt) && (
+                      <p className="mt-3 max-w-2xl text-sm sm:text-base text-ink-foreground/80 line-clamp-2 leading-relaxed">
+                        {heroExcerpt || featured.excerpt}
                       </p>
                     )}
-                    <p className="mt-4 text-xs text-ink-foreground/60">
-                      {featured.author} · {timeAgo(featured.createdAt)}
-                    </p>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-ink-foreground/70 border-t border-white/10 pt-3">
+                      <span className="font-semibold text-ink-foreground">{featured.author}</span>
+                      <span>·</span>
+                      <span>{timeAgo(featured.createdAt, language)}</span>
+                      {featured.readTime && (
+                        <>
+                          <span>·</span>
+                          <span className="flex items-center gap-1 font-mono text-gold">
+                            <Clock className="h-3 w-3" /> {featured.readTime} {t("readTime")}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </article>
-              ) : (
-                <div className="flex min-h-[300px] items-center justify-center rounded-md bg-muted/30 text-muted-foreground">
-                  መነሻ ዘገባ ያለ ነው
-                </div>
-              )}
+              ) : null}
 
-              <div className="flex flex-col divide-y divide-border">
-                {side.map((s) => (
-                  <article key={s.id} className="group flex gap-4 py-5 first:pt-0">
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to="/category/$slug"
-                        params={{
-                          slug: SECTION_TO_SLUG[s.section] ?? "news",
-                        }}
-                        className="kicker text-primary hover:underline"
-                      >
-                        {s.section}
-                      </Link>
-                      <h3 className="mt-2 text-lg leading-snug">
-                        <ArticleLink article={s} />
-                      </h3>
-                      <Meta article={s} />
-                    </div>
-                    {s.image ? (
-                      <img
-                        src={s.image}
-                        alt={s.title}
-                        loading="lazy"
-                        width={1200}
-                        height={800}
-                        className="h-24 w-28 shrink-0 rounded-sm object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : null}
-                  </article>
-                ))}
+              {/* Top Side Stories & Opinion Column */}
+              <div className="flex flex-col justify-between divide-y divide-border rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border">
+                    <Flame className="h-4 w-4 text-primary" />
+                    <h3 className="font-display text-sm font-bold uppercase tracking-wider text-foreground">
+                      {t("latestNews")}
+                    </h3>
+                  </div>
+                  {side.map((s) => (
+                    <ArticleCard key={s.id} article={s} variant="compact" />
+                  ))}
+                </div>
+
+                {/* Editor's Pick Column */}
                 {opinion.length > 0 && (
-                  <div className="border-t border-border pt-5">
-                    <span className="kicker text-muted-foreground">
-                      የአርታዒ ምርጫ
+                  <div className="pt-4 mt-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                      {t("editorsPick")}
                     </span>
-                    <ul className="mt-3 space-y-3">
-                      {opinion.map((o) => (
-                        <li key={o.id}>
+                    <ul className="mt-2 space-y-2.5">
+                      {opinion.slice(0, 2).map((o) => (
+                        <li key={o.id} className="group">
                           <Link
                             to="/article/$slug"
                             params={{ slug: articleSlug(o.title) }}
-                            className="headline-link font-display text-base"
+                            className="headline-link font-display text-sm font-bold text-foreground leading-snug line-clamp-2 block"
                           >
                             {o.title}
                           </Link>
-                          <p className="text-xs text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground mt-0.5 block">
                             {o.author}
-                          </p>
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -271,117 +300,75 @@ function Home() {
               </div>
             </section>
 
-            {/* Latest + rail */}
-            <div className="mt-14 grid gap-10 lg:grid-cols-[1.7fr_1fr]">
+            {/* ── Latest News Grid & Sidebar ──────────────────── */}
+            <div className="mt-14 grid gap-10 lg:grid-cols-[1.8fr_1fr]">
+              {/* Main Grid */}
               <section>
-                <SectionTitle moreSlug="news">
-                  የቅርብ ጊዜ ዘገባዎች
+                <SectionTitle moreSlug="news" moreLabel={t("viewAll")}>
+                  {t("latestNews")}
                 </SectionTitle>
-                <div className="grid gap-8 sm:grid-cols-2">
+                <div className="grid gap-6 sm:grid-cols-2">
                   {grid.map((s) => (
-                    <article key={s.id} className="group">
-                      {s.image ? (
-                        <div className="overflow-hidden rounded-sm">
-                          <img
-                            src={s.image}
-                            alt={s.title}
-                            loading="lazy"
-                            width={1200}
-                            height={800}
-                            className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-                          />
-                        </div>
-                      ) : null}
-                      <Link
-                        to="/category/$slug"
-                        params={{
-                          slug: SECTION_TO_SLUG[s.section] ?? "news",
-                        }}
-                        className="kicker mt-4 block text-primary hover:underline"
-                      >
-                        {s.section}
-                      </Link>
-                      <h3 className="mt-2 text-lg leading-snug">
-                        <ArticleLink article={s} />
-                      </h3>
-                      {s.excerpt && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {s.excerpt}
-                        </p>
-                      )}
-                      <Meta article={s} />
-                    </article>
+                    <ArticleCard key={s.id} article={s} />
                   ))}
                 </div>
               </section>
 
-              <aside className="space-y-10">
+              {/* Sidebar */}
+              <aside className="space-y-8">
+                {/* Most Read Leaderboard */}
                 {mostRead.length > 0 && (
-                  <div className="rounded-md border border-border bg-card p-6 shadow-[var(--shadow-card)]">
-                    <SectionTitle>በብዛት የተነበቡ</SectionTitle>
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <div className="mb-5 flex items-center gap-2 border-b border-border pb-3">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <h2 className="font-display text-lg font-bold text-foreground">
+                        {t("mostRead")}
+                      </h2>
+                    </div>
                     <ol className="space-y-4">
                       {mostRead.map((a, i) => (
-                        <li key={a.id} className="flex gap-4">
-                          <span className="font-display text-2xl leading-none text-primary/35">
+                        <li key={a.id} className="flex items-start gap-4 group">
+                          <span className="font-display text-3xl font-black leading-none text-primary/30 group-hover:text-primary transition-colors">
                             {String(i + 1).padStart(2, "0")}
                           </span>
-                          <Link
-                            to="/article/$slug"
-                            params={{ slug: articleSlug(a.title) }}
-                            className="headline-link text-sm leading-snug"
-                          >
-                            {a.title}
-                          </Link>
+                          <div className="min-w-0 flex-1">
+                            <Link
+                              to="/article/$slug"
+                              params={{ slug: articleSlug(a.title) }}
+                              className="headline-link text-sm font-display font-semibold leading-snug text-foreground block line-clamp-2"
+                            >
+                              {a.title}
+                            </Link>
+                            {(a.viewCount ?? 0) > 0 && (
+                              <p className="mt-1 text-[11px] text-muted-foreground font-mono">
+                                {a.viewCount?.toLocaleString()} {t("views")}
+                              </p>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ol>
                   </div>
                 )}
 
-                <div className="rounded-md bg-ink p-6 text-ink-foreground">
-                  <span className="kicker text-gold">ዕለታዊ ጋዜጣ</span>
-                  <h3 className="mt-3 text-xl text-ink-foreground">
-                    የዕለቱን ዋና ዜናዎች በኢሜይል ይቀበሉ
+                {/* Categories Widget */}
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h3 className="font-display text-base font-bold text-foreground mb-4 border-b border-border pb-2">
+                    {t("columns")}
                   </h3>
-                  <p className="mt-2 text-sm text-ink-foreground/70">
-                    በየቀኑ ጠዋት አጭር ማጠቃለያ — ያለ ክፍያ።
-                  </p>
-                  <form
-                    className="mt-5 flex gap-2"
-                    onSubmit={(e) => e.preventDefault()}
-                  >
-                    <label htmlFor="nl" className="sr-only">
-                      ኢሜይል
-                    </label>
-                    <input
-                      id="nl"
-                      type="email"
-                      required
-                      placeholder="ኢሜይል አድራሻዎ"
-                      className="min-w-0 flex-1 rounded-sm border border-ink-foreground/20 bg-ink-foreground/10 px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/45 focus:border-gold focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                    >
-                      ይመዝገቡ
-                    </button>
-                  </form>
-                </div>
-
-                <div>
-                  <SectionTitle>ዓምዶች</SectionTitle>
                   <div className="flex flex-wrap gap-2">
-                    {catPills.map((t) => (
-                      <Link
-                        key={t.slug}
-                        to="/category/$slug"
-                        params={{ slug: t.slug }}
-                        className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:border-primary hover:text-primary"
-                      >
-                        {t.label}
-                      </Link>
-                    ))}
+                    {categories
+                      .filter((c) => c.slug)
+                      .map((cat) => (
+                        <Link
+                          key={cat.slug}
+                          to="/category/$slug"
+                          params={{ slug: cat.slug }}
+                          className="rounded-xl border border-border bg-muted/30 px-3.5 py-1.5 text-xs font-semibold text-foreground/80 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-xs"
+                        >
+                          {cat.label}
+                        </Link>
+                      ))}
                   </div>
                 </div>
               </aside>

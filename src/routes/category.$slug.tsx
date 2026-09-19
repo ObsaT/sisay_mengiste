@@ -1,152 +1,121 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { CATEGORY_LABEL } from "@/lib/news-data";
-import {
-  getPublishedBySection,
-  articleSlug,
-  timeAgo,
-  type Article,
-} from "@/lib/firestore-service";
+import { ArticleCard } from "@/components/article-card";
+import { SkeletonCard } from "@/components/skeleton-card";
+import { useLanguage } from "@/contexts/language-context";
+import { getPublishedBySection, getPublishedArticles, type Article } from "@/lib/firestore-service";
+import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/category/$slug")({
   head: ({ params }) => {
-    const label = CATEGORY_LABEL[params.slug];
-    if (!label) {
-      return {
-        meta: [
-          { title: "ገጹ አልተገኘም" },
-          { name: "robots", content: "noindex" },
-        ],
-      };
-    }
-    const title = `${label} — ሲሳይ መንግስቴ`;
-    const description = `የ${label} ክፍል የቅርብ ጊዜ ዘገባዎችና ትንታኔዎች ከሲሳይ መንግስቴ።`;
-    const url = `https://ethiopian-reporter-creations.lovable.app/category/${params.slug}`;
     return {
       meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: url },
-        { name: "twitter:card", content: "summary_large_image" },
+        { title: `${decodeURIComponent(params.slug)} — ሲሳይ መንግስቴ` },
+        { name: "robots", content: "index, follow" },
       ],
-      links: [{ rel: "canonical", href: url }],
     };
   },
   component: CategoryPage,
 });
 
-function Card({ article }: { article: Article }) {
-  return (
-    <article className="group">
-      {article.image ? (
-        <div className="overflow-hidden rounded-sm">
-          <img
-            src={article.image}
-            alt={article.title}
-            loading="lazy"
-            width={1200}
-            height={800}
-            className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-          />
-        </div>
-      ) : null}
-      <span className="kicker mt-4 block text-primary">{article.section}</span>
-      <h2 className="mt-2 text-lg leading-snug">
-        <Link
-          to="/article/$slug"
-          params={{ slug: articleSlug(article.title) }}
-          className="headline-link"
-        >
-          {article.title}
-        </Link>
-      </h2>
-      {article.excerpt ? (
-        <p className="mt-2 text-sm text-muted-foreground">{article.excerpt}</p>
-      ) : null}
-      <p className="mt-2 text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground/80">
-          {article.author}
-        </span>
-        <span className="mx-2 opacity-40">·</span>
-        {timeAgo(article.createdAt)}
-      </p>
-    </article>
-  );
-}
-
 function CategoryPage() {
   const { slug } = Route.useParams();
-  const label = CATEGORY_LABEL[slug];
-  const [stories, setStories] = useState<Article[]>([]);
+  const { t, getCategoryLabel } = useLanguage();
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const localizedTitle = getCategoryLabel(slug) || slug;
+
   useEffect(() => {
-    if (!label) {
-      setLoading(false);
-      return;
-    }
-    getPublishedBySection(label)
-      .then(setStories)
+    setLoading(true);
+    setArticles([]);
+
+    const fetchPromise =
+      slug && slug !== "all" ? getPublishedBySection(slug) : getPublishedArticles(40);
+
+    fetchPromise
+      .then(setArticles)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [label, slug]);
+  }, [slug]);
 
-  if (!label) throw notFound();
-
-  const [lead, ...rest] = stories;
+  const featured = articles[0];
+  const rest = articles.slice(1);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-10">
-        <nav
-          aria-label="የመንገድ ዱካ"
-          className="text-xs text-muted-foreground"
-        >
-          <Link to="/" className="hover:text-primary">
-            መነሻ ገጽ
-          </Link>
-          <span className="mx-2 opacity-40">/</span>
-          <span className="text-foreground/80">{label}</span>
-        </nav>
-        <h1 className="rule-heading mt-3 border-b border-border pb-4 text-3xl tracking-tight">
-          {label}
-        </h1>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:py-10 flex-1 w-full">
+        {/* Breadcrumb */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground font-medium"
+        >
+          <Link to="/" className="hover:text-primary transition-colors">
+            {t("home")}
+          </Link>
+          <ChevronRight className="h-3 w-3 opacity-40" />
+          <span className="text-foreground font-bold">{localizedTitle}</span>
+        </nav>
+
+        {/* Page header banner */}
+        <div className="mb-8 border-b-2 border-border pb-5 flex flex-wrap items-baseline justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-7 w-1.5 rounded-full bg-primary" />
+            <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+              {localizedTitle}
+            </h1>
           </div>
-        ) : stories.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground">
-            በዚህ ክፍል ዘገባ አልተገኘም።
+          {!loading && (
+            <p className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              {articles.length} {articles.length === 1 ? "story" : "stories"}
+            </p>
+          )}
+        </div>
+
+        {/* Loading Skeletons */}
+        {loading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : articles.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+            <p className="text-lg font-medium text-muted-foreground">{t("noArticles")}</p>
+            <Link
+              to="/"
+              className="mt-5 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+            >
+              {t("backHome")}
+            </Link>
           </div>
         ) : (
           <>
-            {lead ? (
-              <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-                <Card article={lead} />
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-                  {rest.slice(0, 2).map((s) => (
-                    <Card key={s.id} article={s} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
+            {/* Top Featured story if available */}
+            {featured && (
+              <div className="mb-10 animate-rise">
+                <ArticleCard
+                  article={featured}
+                  variant="horizontal"
+                  className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm"
+                />
+              </div>
+            )}
 
-            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.slice(2).map((s) => (
-                <Card key={s.id} article={s} />
+            {/* Articles Grid */}
+            <div className="grid animate-fade-in gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {rest.map((a) => (
+                <ArticleCard key={a.id} article={a} />
               ))}
             </div>
           </>
         )}
       </main>
+
       <SiteFooter />
     </div>
   );

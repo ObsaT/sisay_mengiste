@@ -30,12 +30,16 @@ function AdminLogin() {
     try {
       await signIn(email, password);
       navigate({ to: "/admin" });
-    } catch (err: any) {
-      if (err.code === "auth/user-not-found") {
+    } catch (err: unknown) {
+      const authErr = err as { code?: string };
+      if (authErr.code === "auth/user-not-found") {
         setError("No account found with this email.");
-      } else if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+      } else if (
+        authErr.code === "auth/wrong-password" ||
+        authErr.code === "auth/invalid-credential"
+      ) {
         setError("Invalid email or password.");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (authErr.code === "auth/too-many-requests") {
         setError("Too many failed attempts. Please try again later.");
       } else {
         setError("Login failed. Please try again.");
@@ -101,7 +105,10 @@ function AdminLogin() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
+              <label
+                htmlFor="password"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
                 Password
               </label>
               <div className="relative">

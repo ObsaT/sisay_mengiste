@@ -9,34 +9,53 @@ import {
   Twitter,
   Youtube,
   Linkedin,
-  ChevronRight,
-  Radio,
   Clock,
   ArrowUp,
+  Moon,
+  Sun,
+  Globe,
+  Sparkles,
 } from "lucide-react";
-import { NAV, SOCIALS, BREAKING } from "@/lib/news-data";
+import { SOCIALS } from "@/lib/news-data";
+import { useTheme } from "@/contexts/theme-context";
+import { useLanguage } from "@/contexts/language-context";
+import { type Language } from "@/lib/i18n";
+import {
+  getPublishedArticles,
+  searchArticles,
+  articleSlug,
+  type Article,
+} from "@/lib/firestore-service";
 
-/* ── Live clock ──────────────────────────────────────────────────── */
+/* ── Live clock & date by language ──────────────────────────────── */
 
 function LiveClock() {
+  const { language, t } = useLanguage();
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
 
   useEffect(() => {
+    const localeMap = {
+      am: "am-ET",
+      om: "en-ET",
+      en: "en-US",
+    };
+    const locale = localeMap[language] || "am-ET";
+
     const tick = () => {
       const now = new Date();
       setTime(
-        now.toLocaleTimeString("am-ET", {
+        now.toLocaleTimeString(locale, {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
         }),
       );
       setDate(
-        now.toLocaleDateString("am-ET", {
+        now.toLocaleDateString(locale, {
           weekday: "long",
           year: "numeric",
-          month: "long",
+          month: "short",
           day: "numeric",
         }),
       );
@@ -44,20 +63,91 @@ function LiveClock() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [language]);
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex items-center gap-1.5 text-ink-foreground/60">
+    <div className="flex items-center gap-2.5 text-[11px] text-ink-foreground/80 font-medium">
+      <span className="flex items-center gap-1.5 text-gold/90">
         <Clock className="h-3 w-3" />
-        <span suppressHydrationWarning className="tabular-nums">
+        <span suppressHydrationWarning className="tabular-nums font-mono">
           {time}
         </span>
       </span>
-      <span className="hidden text-ink-foreground/40 sm:inline">|</span>
-      <span suppressHydrationWarning className="hidden text-ink-foreground/70 sm:inline">
+      <span className="text-ink-foreground/30">|</span>
+      <span suppressHydrationWarning className="hidden sm:inline text-ink-foreground/75">
         {date}
       </span>
+      <span className="hidden md:inline text-ink-foreground/30">·</span>
+      <span className="hidden md:inline text-gold/80 font-semibold uppercase tracking-wider text-[10px]">
+        {t("edition")}
+      </span>
+    </div>
+  );
+}
+
+/* ── Language Switcher Component ─────────────────────────────────── */
+
+export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+  const { language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const languages: { code: Language; label: string; short: string; flag: string }[] = [
+    { code: "am", label: "አማርኛ", short: "አማ", flag: "🇪🇹" },
+    { code: "om", label: "Afaan Oromoo", short: "Orom", flag: "🌳" },
+    { code: "en", label: "English", short: "ENG", flag: "🌐" },
+  ];
+
+  const current = languages.find((l) => l.code === language) ?? languages[0]!;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-ink-foreground hover:bg-white/20 transition-all border border-white/10"
+        aria-label="Select language"
+      >
+        <Globe className="h-3.5 w-3.5 text-gold" />
+        <span>{compact ? current.short : current.label}</span>
+        <span className="text-[10px] opacity-60">▼</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-1.5 w-40 rounded-xl border border-border bg-card p-1 shadow-2xl z-50 animate-fade-in backdrop-blur-md">
+          {languages.map((item) => (
+            <button
+              key={item.code}
+              type="button"
+              onClick={() => {
+                setLanguage(item.code);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                language === item.code
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-foreground hover:bg-muted"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>{item.flag}</span>
+                <span>{item.label}</span>
+              </span>
+              {language === item.code && <span className="text-xs">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -89,7 +179,7 @@ export function SocialLinks({ className = "" }: { className?: string }) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={s.label}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-foreground/50 transition-all hover:bg-white/10 hover:text-white"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-foreground/60 transition-all hover:bg-white/10 hover:text-gold"
             >
               {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
             </a>
@@ -100,100 +190,124 @@ export function SocialLinks({ className = "" }: { className?: string }) {
   );
 }
 
-/* ── Breaking ticker ─────────────────────────────────────────────── */
+/* ── Modern Search Overlay with Firestore Live Results ───────────── */
 
-function BreakingTicker() {
-  if (!BREAKING.length) return null;
-  const doubled = [...BREAKING, ...BREAKING];
-  return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-[#b91c1c] to-[#991b1b] py-2">
-      <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center gap-1.5 bg-[#991b1b] px-4 text-xs font-bold uppercase tracking-widest text-white shadow-[4px_0_8px_-2px_rgba(0,0,0,0.3)]">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-        </span>
-        በተቀኘ Breaking
-      </div>
-      <div className="ml-36 overflow-hidden">
-        <div className="animate-ticker flex whitespace-nowrap">
-          {doubled.map((item, i) => (
-            <span
-              key={`${item}-${i}`}
-              className="mr-16 inline-flex items-center text-[13px] font-medium text-white/95"
-            >
-              <ChevronRight className="mr-1.5 h-3 w-3 text-white/50" />
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Search overlay ──────────────────────────────────────────────── */
-
-function SearchOverlay({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Article[]>([]);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => inputRef.current?.focus(), 80);
       document.body.style.overflow = "hidden";
+      if (!fetched) {
+        getPublishedArticles(100)
+          .then((a) => {
+            setAllArticles(a);
+            setFetched(true);
+          })
+          .catch(console.error);
+      }
     } else {
       document.body.style.overflow = "";
+      setQuery("");
+      setResults([]);
     }
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [open, fetched]);
+
+  useEffect(() => {
+    if (query.trim().length >= 2) {
+      setResults(searchArticles(allArticles, query).slice(0, 6));
+    } else {
+      setResults([]);
+    }
+  }, [query, allArticles]);
 
   return (
     <div
-      className={`fixed inset-0 z-[60] bg-black/70 backdrop-blur-md transition-all duration-300 ${
-        open
-          ? "pointer-events-auto opacity-100"
-          : "pointer-events-none opacity-0"
+      className={`fixed inset-0 z-[70] bg-black/75 backdrop-blur-md transition-all duration-300 ${
+        open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       }`}
       onClick={onClose}
     >
       <div
-        className={`mx-auto max-w-2xl px-4 pt-[20vh] transition-all duration-300 ${
-          open ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0"
+        className={`mx-auto max-w-2xl px-4 pt-[12vh] transition-all duration-300 ${
+          open ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            type="search"
-            placeholder="Search news..."
-            className="w-full rounded-xl border border-border bg-card py-4 pl-12 pr-14 text-lg text-foreground shadow-2xl outline-none ring-2 ring-primary/20 placeholder:text-muted-foreground/60 focus:ring-primary/40"
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl">
+          <div className="flex items-center px-4 border-b border-border">
+            <Search className="h-5 w-5 text-primary shrink-0" />
+            <input
+              ref={inputRef}
+              type="search"
+              placeholder={t("searchPlaceholder")}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full bg-transparent py-4 pl-3 pr-10 text-base sm:text-lg text-foreground outline-none placeholder:text-muted-foreground/60"
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-muted text-muted-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {results.length > 0 && (
+            <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
+              {results.map((a) => (
+                <Link
+                  key={a.id}
+                  to="/article/$slug"
+                  params={{ slug: articleSlug(a.title) }}
+                  onClick={onClose}
+                  className="flex items-start gap-4 p-4 transition-colors hover:bg-muted/60"
+                >
+                  {a.image && (
+                    <img
+                      src={a.image}
+                      alt={a.title}
+                      className="h-16 w-20 shrink-0 rounded-md object-cover border border-border"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {a.section}
+                    </span>
+                    <p className="font-display text-sm font-semibold text-foreground line-clamp-2 mt-0.5">
+                      {a.title}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{a.author}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {query.trim().length >= 2 && results.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              {t("searchNoResults")}
+            </div>
+          )}
         </div>
-        <p className="mt-3 text-center text-xs text-ink-foreground/40">
-          Press <kbd className="rounded border border-white/20 bg-white/5 px-1.5 py-0.5 text-[10px]">ESC</kbd> to close
-        </p>
+
+        <p className="mt-3 text-center text-xs text-white/60">{t("searchClose")}</p>
       </div>
     </div>
   );
 }
 
-/* ── Mobile menu ─────────────────────────────────────────────────── */
+/* ── Modern Mobile Menu Drawer ───────────────────────────────────── */
 
 function MobileMenu({
   open,
@@ -204,6 +318,9 @@ function MobileMenu({
   onClose: () => void;
   onOpenSearch: () => void;
 }) {
+  const { theme, toggleTheme } = useTheme();
+  const { categories, t, language, setLanguage } = useLanguage();
+
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -217,66 +334,106 @@ function MobileMenu({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          open
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
       />
 
-      {/* Panel */}
       <div
         className={`fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] flex-col bg-card shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <Link to="/" onClick={onClose} className="font-display text-lg font-bold text-foreground">
-            ሲሳይ መንግስቴ
-          </Link>
-          <button
-            type="button"
-            aria-label="ዝጋ"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div>
+            <Link
+              to="/"
+              onClick={onClose}
+              className="font-display text-xl font-bold text-foreground"
+            >
+              {t("siteName")}
+            </Link>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {t("siteSubtitle")}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border transition-colors hover:bg-muted text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Search in mobile */}
+        {/* Language selector pills inside drawer */}
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            Language / ቋንቋ
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {(
+              [
+                { code: "am", label: "አማርኛ" },
+                { code: "om", label: "Oromoo" },
+                { code: "en", label: "English" },
+              ] as const
+            ).map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setLanguage(lang.code)}
+                className={`rounded-lg py-1.5 text-xs font-semibold border transition-all ${
+                  language === lang.code
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "border-border bg-muted/40 text-foreground hover:bg-muted"
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search trigger */}
         <button
           type="button"
           onClick={() => {
             onClose();
             onOpenSearch();
           }}
-          className="mx-4 mt-4 flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+          className="mx-5 mt-2 flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <Search className="h-4 w-4" />
-          ፈልግ...
+          <Search className="h-4 w-4 text-primary" />
+          <span>{t("search")}</span>
         </button>
 
-        {/* Nav links */}
-        <nav aria-label="ሞባይል ምናሌ" className="flex-1 overflow-y-auto px-3 py-4 overflow-hidden">
-          <ul className="space-y-0.5">
-            {NAV.map((item, idx) => (
+        {/* Navigation list */}
+        <nav aria-label="Mobile Navigation" className="flex-1 overflow-y-auto px-3 py-4">
+          <ul className="space-y-1">
+            {categories.map((item) => (
               <li key={item.slug || "home"}>
                 {item.slug ? (
                   <Link
                     to="/category/$slug"
                     params={{ slug: item.slug }}
                     onClick={onClose}
-                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+                    className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
                     activeProps={{ className: "bg-primary/10 text-primary font-semibold" }}
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground">
-                      {idx}
-                    </span>
                     {item.label}
                   </Link>
                 ) : (
@@ -284,12 +441,9 @@ function MobileMenu({
                     to="/"
                     onClick={onClose}
                     activeOptions={{ exact: true }}
-                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+                    className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
                     activeProps={{ className: "bg-primary/10 text-primary font-semibold" }}
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground">
-                      &#8962;
-                    </span>
                     {item.label}
                   </Link>
                 )}
@@ -298,19 +452,16 @@ function MobileMenu({
           </ul>
         </nav>
 
-        {/* Socials */}
-        <div className="border-t border-border px-5 py-4">
+        {/* Drawer footer */}
+        <div className="border-t border-border px-5 py-4 bg-muted/20">
           <Link
             to="/admin"
             onClick={onClose}
-            className="mb-4 flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            className="mb-3 block text-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90"
           >
-            Admin Dashboard
+            {t("adminDashboard")}
           </Link>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Follow Us
-          </p>
-          <SocialLinks />
+          <SocialLinks className="justify-center" />
         </div>
       </div>
     </>
@@ -323,7 +474,7 @@ function ScrollToTop() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 400);
+    const onScroll = () => setShow(window.scrollY > 350);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -333,7 +484,7 @@ function ScrollToTop() {
       type="button"
       aria-label="Back to top"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={`fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-all duration-300 hover:scale-110 ${
+      className={`fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${
         show
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-4 opacity-0"
@@ -344,21 +495,18 @@ function ScrollToTop() {
   );
 }
 
-/* ── Main header ─────────────────────────────────────────────────── */
+/* ── Main Site Header Component ───────────────────────────────────── */
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [compact, setCompact] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { t, categories } = useLanguage();
 
   useEffect(() => {
-    let lastScroll = 0;
     const onScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 10);
-      setCompact(y > 120);
-      lastScroll = y;
+      setScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -381,128 +529,155 @@ export function SiteHeader() {
 
   return (
     <>
-      {/* ── Sticky header wrapper ────────────────────────────── */}
-      <div
-        className={`sticky top-0 z-30 transition-shadow duration-300 ${
-          scrolled ? "shadow-lg" : ""
+      <header
+        className={`sticky top-0 z-40 w-full bg-card transition-all duration-300 ${
+          scrolled ? "shadow-lg border-b border-border" : ""
         }`}
       >
-        {/* ── Utility bar ──────────────────────────────────── */}
-        <div className="bg-ink text-ink-foreground">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 text-xs">
+        {/* ── 1. Top Utility Bar ─────────────────────────────── */}
+        <div className="border-b border-white/10 bg-ink text-ink-foreground">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5 text-xs">
             <LiveClock />
-            <div className="flex items-center gap-3">
-              <SocialLinks className="hidden sm:flex" />
-              <Link
-                to="/admin"
-                className="hidden rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-ink-foreground/60 transition-all hover:bg-white/20 hover:text-white sm:inline"
+
+            <div className="flex items-center gap-2.5">
+              <SocialLinks className="hidden md:flex" />
+
+              <span className="hidden sm:inline text-ink-foreground/20">|</span>
+
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+
+              {/* Dark mode toggle */}
+              <button
+                type="button"
+                aria-label="Toggle dark mode"
+                onClick={toggleTheme}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-ink-foreground/80 hover:text-gold transition-colors hover:bg-white/20"
               >
-                Admin
-              </Link>
+                {theme === "dark" ? (
+                  <Sun className="h-3.5 w-3.5" />
+                ) : (
+                  <Moon className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              {/* Search button */}
               <button
                 type="button"
                 aria-label="Search"
                 onClick={openSearch}
-                className="flex h-7 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-ink-foreground/60 transition-all hover:bg-white/20 hover:text-white"
+                className="flex h-7 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-ink-foreground/80 hover:text-gold hover:bg-white/20 transition-all text-xs"
               >
-                <Search className="h-3 w-3" />
-                <span className="hidden text-[10px] sm:inline">⌘K</span>
+                <Search className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline text-[10px] opacity-70">⌘K</span>
+              </button>
+
+              {/* Admin Portal Link */}
+              <Link
+                to="/admin"
+                className="hidden sm:inline-flex items-center rounded-full bg-primary/80 px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary transition-colors"
+              >
+                {t("admin")}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2. Editorial Masthead ─────────────────────────── */}
+        <div className="border-b border-border bg-card/95 backdrop-blur-md">
+          <div
+            className={`mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 transition-all duration-300 ${
+              scrolled ? "py-2 sm:py-2.5" : "py-4 sm:py-6"
+            }`}
+          >
+            {/* Mobile menu trigger */}
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen(true)}
+              className={`flex shrink-0 items-center justify-center rounded-xl border border-border hover:bg-muted text-foreground transition-all lg:hidden ${
+                scrolled ? "h-8 w-8" : "h-10 w-10"
+              }`}
+            >
+              <Menu className={scrolled ? "h-4 w-4" : "h-5 w-5"} />
+            </button>
+
+            {/* Publication Logo / Brand */}
+            <Link to="/" className="flex-1 text-center group">
+              <div className="inline-block">
+                <span
+                  className={`block font-display font-black tracking-tight text-foreground group-hover:text-primary transition-all duration-300 ${
+                    scrolled ? "text-xl sm:text-2xl" : "text-3xl sm:text-5xl"
+                  }`}
+                >
+                  {t("siteName")}
+                </span>
+                <span
+                  className={`kicker mt-0.5 block text-muted-foreground text-xs sm:text-sm tracking-[0.25em] transition-all duration-300 ${
+                    scrolled ? "hidden" : "block"
+                  }`}
+                >
+                  {t("siteSubtitle")}
+                </span>
+              </div>
+            </Link>
+
+            {/* Right Quick Action for Desktop */}
+            <div className="hidden w-10 shrink-0 lg:flex justify-end">
+              <button
+                type="button"
+                aria-label="Search"
+                onClick={openSearch}
+                className={`flex items-center justify-center rounded-xl border border-border hover:bg-muted text-foreground transition-all ${
+                  scrolled ? "h-8 w-8" : "h-10 w-10"
+                }`}
+              >
+                <Search className={scrolled ? "h-3.5 w-3.5" : "h-4 w-4"} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Masthead ─────────────────────────────────────── */}
-        <header className="border-b border-border bg-card">
-          <div
-            className={`mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 transition-all duration-300 ${
-              compact ? "py-3 sm:py-4" : "py-5 sm:py-8"
-            }`}
-          >
-            {/* Hamburger (mobile) */}
-            <button
-              type="button"
-              aria-label="ምናሌ"
-              aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border transition-colors hover:bg-muted lg:hidden"
+        {/* ── 3. Sticky Desktop Primary Navigation ──────────── */}
+        <nav aria-label="Main Navigation" className="bg-card/95 backdrop-blur-md">
+          <div className="mx-auto max-w-7xl">
+            <ul
+              className={`hidden items-center justify-center gap-1 overflow-x-auto px-4 font-bold tracking-wide transition-all duration-300 lg:flex ${
+                scrolled ? "text-xs" : "text-[13px]"
+              }`}
             >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            {/* Branding */}
-            <Link to="/" className="flex-1 text-center">
-              <span
-                className={`block font-display font-extrabold tracking-tight text-foreground transition-all duration-300 ${
-                  compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-5xl"
-                }`}
-              >
-                ሲሳይ መንግስቴ
-              </span>
-              <span
-                className={`kicker mt-1 block text-muted-foreground transition-all duration-300 ${
-                  compact ? "hidden sm:block" : "block"
-                }`}
-              >
-                Sisay Mengiste
-              </span>
-            </Link>
-
-            {/* Search (desktop) */}
-            <div className="hidden w-10 shrink-0 lg:block">
-              <button
-                type="button"
-                aria-label="Search"
-                onClick={openSearch}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border transition-colors hover:bg-muted"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            </div>
+              {categories.map((item) => (
+                <li key={item.slug || "home"}>
+                  {item.slug ? (
+                    <Link
+                      to="/category/$slug"
+                      params={{ slug: item.slug }}
+                      className="group relative block whitespace-nowrap px-3.5 py-3 text-foreground/75 hover:text-primary transition-colors"
+                      activeProps={{ className: "text-primary font-extrabold" }}
+                    >
+                      {item.label}
+                      <span className="absolute bottom-0 left-3 right-3 h-[2.5px] scale-x-0 rounded-full bg-primary transition-transform group-hover:scale-x-100 [&.active]:scale-x-100" />
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/"
+                      activeOptions={{ exact: true }}
+                      className="group relative block whitespace-nowrap px-3.5 py-3 text-foreground/75 hover:text-primary transition-colors"
+                      activeProps={{ className: "text-primary font-extrabold" }}
+                    >
+                      {item.label}
+                      <span className="absolute bottom-0 left-3 right-3 h-[2.5px] scale-x-0 rounded-full bg-primary transition-transform group-hover:scale-x-100 [&.active]:scale-x-100" />
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
+        </nav>
+      </header>
 
-          {/* ── Desktop nav ──────────────────────────────── */}
-          <nav
-            aria-label="ዋና ምናሌ"
-            className="border-t border-border bg-muted/20"
-          >
-            <div className="mx-auto max-w-7xl">
-              <ul className="hidden items-center overflow-x-auto px-4 text-sm font-semibold lg:flex">
-                {NAV.map((item) => (
-                  <li key={item.slug || "home"}>
-                    {item.slug ? (
-                      <Link
-                        to="/category/$slug"
-                        params={{ slug: item.slug }}
-                        className="group relative whitespace-nowrap px-4 py-3 text-foreground/60 transition-colors hover:text-foreground"
-                        activeProps={{ className: "text-primary" }}
-                      >
-                        {item.label}
-                        <span className="absolute bottom-0 left-4 right-4 h-0.5 scale-x-0 bg-primary transition-transform group-hover:scale-x-100 [&.active]:scale-x-100" />
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/"
-                        activeOptions={{ exact: true }}
-                        className="group relative whitespace-nowrap px-4 py-3 text-foreground/60 transition-colors hover:text-foreground"
-                        activeProps={{ className: "text-primary" }}
-                      >
-                        {item.label}
-                        <span className="absolute bottom-0 left-4 right-4 h-0.5 scale-x-0 bg-primary transition-transform group-hover:scale-x-100 [&.active]:scale-x-100" />
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </nav>
-
-          {/* Breaking ticker */}
-          <BreakingTicker />
-        </header>
-      </div>
-
-      {/* ── Overlays ─────────────────────────────────────────── */}
+      {/* ── Overlays & Modals ───────────────────────────────── */}
       <MobileMenu
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
