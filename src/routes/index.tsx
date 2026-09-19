@@ -4,6 +4,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ArticleCard } from "@/components/article-card";
 import { SkeletonCard, SkeletonHero } from "@/components/skeleton-card";
+import { AdBanner } from "@/components/ad-banner";
+import { SEO } from "@/components/seo";
 import { useLanguage } from "@/contexts/language-context";
 import {
   getPublishedArticles,
@@ -20,18 +22,6 @@ import { translateText } from "@/lib/translation-service";
 import { TrendingUp, Clock, Flame, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ" },
-      {
-        name: "description",
-        content: "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ እትም።",
-      },
-      { property: "og:title", content: "ሲሳይ መንግስቴ | Sisay Mengiste" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
   component: Home,
 });
 
@@ -138,6 +128,12 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary">
+      {/* ── Dynamic SEO & Schema.org ────────────────────────── */}
+      <SEO
+        title="ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ"
+        description="የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ፣ ኦሮምኛና እንግሊዝኛ እትም።"
+      />
+
       <SiteHeader />
 
       {/* ── Modern Breaking News Ticker ─────────────────────── */}
@@ -173,8 +169,11 @@ function Home() {
         </div>
       )}
 
+      {/* ── Top Leaderboard Advertisement Banner ───────────── */}
+      <AdBanner variant="leaderboard" />
+
       {/* ── Main News Container ────────────────────────────── */}
-      <main className="mx-auto max-w-7xl px-4 py-8 flex-1 w-full">
+      <main className="mx-auto max-w-7xl px-4 py-6 flex-1 w-full">
         {loading ? (
           <>
             <SkeletonHero />
@@ -314,7 +313,7 @@ function Home() {
                 </div>
               </section>
 
-              {/* Sidebar */}
+              {/* Sidebar with Ads */}
               <aside className="space-y-8">
                 {/* Most Read Leaderboard */}
                 {mostRead.length > 0 && (
@@ -351,6 +350,9 @@ function Home() {
                   </div>
                 )}
 
+                {/* Sidebar Advertisement Unit */}
+                <AdBanner variant="sidebar" />
+
                 {/* Categories Widget */}
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="font-display text-base font-bold text-foreground mb-4 border-b border-border pb-2">
@@ -373,6 +375,9 @@ function Home() {
                 </div>
               </aside>
             </div>
+
+            {/* ── Mid-Page Billboard Sponsor Spotlight ──────── */}
+            <AdBanner variant="billboard" />
           </>
         )}
       </main>

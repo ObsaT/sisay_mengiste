@@ -6,6 +6,8 @@ import { ArticleCard } from "@/components/article-card";
 import { SkeletonCard } from "@/components/skeleton-card";
 import { useLanguage } from "@/contexts/language-context";
 import { getPublishedBySection, getPublishedArticles, type Article } from "@/lib/firestore-service";
+import { SEO } from "@/components/seo";
+import { AdBanner } from "@/components/ad-banner";
 import { ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/category/$slug")({
@@ -46,7 +48,12 @@ function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <SEO
+        title={`${localizedTitle} — ሲሳይ መንግስቴ`}
+        description={`${localizedTitle} — የዕለቱ ትኩስና አስተማማኝ ዜናዎችና ዘገባዎች ከሲሳይ መንግስቴ ጋዜጣ። Latest news and reports in ${localizedTitle}.`}
+      />
       <SiteHeader />
+      <AdBanner variant="leaderboard" className="mt-2" />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:py-10 flex-1 w-full">
         {/* Breadcrumb */}

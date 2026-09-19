@@ -15,6 +15,8 @@ import {
   type Article,
 } from "@/lib/firestore-service";
 import { translateArticleBundle } from "@/lib/translation-service";
+import { AdBanner } from "@/components/ad-banner";
+import { SEO } from "@/components/seo";
 import {
   Clock,
   Share2,
@@ -31,14 +33,6 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/article/$slug")({
-  head: ({ params }) => {
-    return {
-      meta: [
-        { title: `${decodeURIComponent(params.slug)} — ሲሳይ መንግስቴ` },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-    };
-  },
   component: ArticlePage,
 });
 
@@ -347,6 +341,20 @@ function ArticlePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <SEO
+        title={displayedTitle || story.title}
+        description={displayedExcerpt || story.excerpt}
+        image={story.image}
+        type="article"
+        article={{
+          headline: displayedTitle || story.title,
+          description: displayedExcerpt || story.excerpt,
+          image: story.image,
+          datePublished: story.createdAt?.toDate ? story.createdAt.toDate().toISOString() : undefined,
+          authorName: story.author,
+          section: localizedSection,
+        }}
+      />
       <ReadingProgress />
       <SiteHeader />
 
@@ -494,6 +502,11 @@ function ArticlePage() {
               {displayedExcerpt}
             </p>
           ) : null}
+
+          {/* In-Article Advertisement */}
+          <div className="my-8">
+            <AdBanner variant="in-article" />
+          </div>
 
           {/* Article Body */}
           <div className="mt-8">
