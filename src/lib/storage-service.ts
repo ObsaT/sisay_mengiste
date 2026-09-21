@@ -1,4 +1,5 @@
 import { uploadToCloudinary } from "./cloudinary-service";
+import { getLocalCloudinarySettings } from "./cloudinary-settings";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "./firebase";
 import { compressImageToDataUrl } from "./image-compressor";
@@ -15,18 +16,12 @@ export async function uploadArticleImage(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  const cloudName =
-    (import.meta.env["VITE_CLOUDINARY_CLOUD_NAME"] as string) ||
-    localStorage.getItem("cloudinary_cloud_name") ||
-    "";
-
-  const uploadPreset =
-    (import.meta.env["VITE_CLOUDINARY_UPLOAD_PRESET"] as string) ||
-    localStorage.getItem("cloudinary_upload_preset") ||
-    "";
+  const cloudinarySettings = getLocalCloudinarySettings();
+  const cloudName = cloudinarySettings.cloudName.trim();
+  const uploadPreset = cloudinarySettings.uploadPreset.trim();
 
   // Tier 1: Cloudinary (if credentials are provided)
-  if (cloudName.trim() && cloudName !== "demo" && uploadPreset.trim()) {
+  if (cloudName && cloudName !== "demo" && uploadPreset) {
     try {
       const cloudinaryPromise = uploadToCloudinary(file, onProgress);
       const timeoutPromise = new Promise<string>((_, reject) =>

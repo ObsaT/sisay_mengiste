@@ -1,13 +1,4 @@
-/**
- * Cloudinary Image Storage Service
- *
- * Direct unauthenticated client uploads using Cloudinary's unsigned upload preset.
- * Offers automatic image optimization (WebP/AVIF format, auto quality, CDN delivery).
- */
-
-const DEFAULT_CLOUD_NAME = (import.meta.env["VITE_CLOUDINARY_CLOUD_NAME"] as string) || "demo";
-const DEFAULT_UPLOAD_PRESET =
-  (import.meta.env["VITE_CLOUDINARY_UPLOAD_PRESET"] as string) || "docs_upload_example_preset";
+import { getLocalCloudinarySettings } from "./cloudinary-settings";
 
 export interface CloudinaryUploadResponse {
   secure_url: string;
@@ -28,15 +19,9 @@ export function uploadToCloudinary(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  const cloudName =
-    (import.meta.env["VITE_CLOUDINARY_CLOUD_NAME"] as string) ||
-    localStorage.getItem("cloudinary_cloud_name") ||
-    DEFAULT_CLOUD_NAME;
-
-  const uploadPreset =
-    (import.meta.env["VITE_CLOUDINARY_UPLOAD_PRESET"] as string) ||
-    localStorage.getItem("cloudinary_upload_preset") ||
-    DEFAULT_UPLOAD_PRESET;
+  const currentSettings = getLocalCloudinarySettings();
+  const cloudName = currentSettings.cloudName.trim();
+  const uploadPreset = currentSettings.uploadPreset.trim();
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

@@ -11,6 +11,7 @@ import {
   Newspaper,
   Share2,
   Mail,
+  Cloud,
   Globe,
   Check,
   ExternalLink,
@@ -161,6 +162,7 @@ function AdminLayout() {
     { to: "/admin/articles/" as const, label: t("adminNavArticles"), icon: FileText },
     { to: "/admin/social" as const, label: t("adminNavSocial"), icon: Share2 },
     { to: "/admin/contact" as const, label: t("adminNavContact"), icon: Mail },
+    { to: "/admin/cloudinary" as const, label: t("adminNavCloudinary"), icon: Cloud },
   ];
 
   return (
