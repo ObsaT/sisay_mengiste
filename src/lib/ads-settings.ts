@@ -1,19 +1,38 @@
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 
+export interface AdItem {
+  id: string;
+  sponsorName: string;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  linkUrl: string;
+  ctaText?: string;
+  displayStyle?: "card" | "banner";
+  enabled: boolean;
+  openInNewTab?: boolean;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+}
+
 export interface AdSlotConfig {
   id: "leaderboard" | "sidebar" | "in-article" | "billboard";
   name: string;
   enabled: boolean;
-  imageUrl: string;
-  linkUrl: string;
-  sponsorName: string;
-  title: string;
+  recommendedSize: string;
+  rotationStrategy?: "random" | "carousel";
+  rotationIntervalSeconds?: number;
+  ads: AdItem[];
+  // Legacy single-ad compatibility
+  imageUrl?: string;
+  linkUrl?: string;
+  sponsorName?: string;
+  title?: string;
   description?: string;
   ctaText?: string;
   displayStyle?: "card" | "banner";
-  openInNewTab: boolean;
-  recommendedSize: string;
+  openInNewTab?: boolean;
 }
 
 export interface AdsSettings {
@@ -22,12 +41,58 @@ export interface AdsSettings {
   enableAdSense?: boolean;
 }
 
+export function generateAdId(): string {
+  return `ad-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+}
+
+export function getSlotAds(slot?: AdSlotConfig): AdItem[] {
+  if (!slot) return [];
+  if (Array.isArray(slot.ads) && slot.ads.length > 0) {
+    return slot.ads;
+  }
+  // Legacy single ad backward compatibility
+  if (slot.imageUrl || slot.title || slot.sponsorName) {
+    return [
+      {
+        id: "legacy-primary",
+        sponsorName: slot.sponsorName || "",
+        title: slot.title || "",
+        description: slot.description || "",
+        imageUrl: slot.imageUrl || "",
+        linkUrl: slot.linkUrl || "",
+        ctaText: slot.ctaText || "Visit Sponsor",
+        displayStyle: slot.displayStyle || "card",
+        enabled: slot.enabled !== false,
+        openInNewTab: slot.openInNewTab !== false,
+      },
+    ];
+  }
+  return [];
+}
+
+export function getActiveAds(slot?: AdSlotConfig): AdItem[] {
+  const allAds = getSlotAds(slot);
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+
+  return allAds.filter((ad) => {
+    if (!ad.enabled) return false;
+    if (ad.startDate && ad.startDate > todayStr) return false;
+    if (ad.endDate && ad.endDate < todayStr) return false;
+    return true;
+  });
+}
+
 export const DEFAULT_ADS_SETTINGS: AdsSettings = {
   slots: {
     leaderboard: {
       id: "leaderboard",
       name: "Top Leaderboard Banner",
       enabled: true,
+      recommendedSize: "728 × 90 px (or responsive banner)",
+      rotationStrategy: "random",
+      rotationIntervalSeconds: 8,
+      ads: [],
       imageUrl: "",
       linkUrl: "",
       sponsorName: "",
@@ -36,12 +101,15 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       ctaText: "Visit Sponsor",
       displayStyle: "card",
       openInNewTab: true,
-      recommendedSize: "728 × 90 px (or responsive banner)",
     },
     sidebar: {
       id: "sidebar",
       name: "Sidebar Rectangle Ad",
       enabled: true,
+      recommendedSize: "300 × 250 px",
+      rotationStrategy: "random",
+      rotationIntervalSeconds: 8,
+      ads: [],
       imageUrl: "",
       linkUrl: "",
       sponsorName: "",
@@ -50,12 +118,15 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       ctaText: "Learn More",
       displayStyle: "card",
       openInNewTab: true,
-      recommendedSize: "300 × 250 px",
     },
     "in-article": {
       id: "in-article",
       name: "In-Article Interstitial Ad",
       enabled: true,
+      recommendedSize: "600 × 200 px (or responsive banner)",
+      rotationStrategy: "random",
+      rotationIntervalSeconds: 8,
+      ads: [],
       imageUrl: "",
       linkUrl: "",
       sponsorName: "",
@@ -64,12 +135,15 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       ctaText: "Explore More",
       displayStyle: "card",
       openInNewTab: true,
-      recommendedSize: "600 × 200 px (or responsive banner)",
     },
     billboard: {
       id: "billboard",
       name: "Bottom Billboard Banner",
       enabled: true,
+      recommendedSize: "970 × 250 px (or wide banner)",
+      rotationStrategy: "random",
+      rotationIntervalSeconds: 8,
+      ads: [],
       imageUrl: "",
       linkUrl: "",
       sponsorName: "",
@@ -78,7 +152,6 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       ctaText: "Visit Sponsor",
       displayStyle: "card",
       openInNewTab: true,
-      recommendedSize: "970 × 250 px (or wide banner)",
     },
   },
   adSenseClientId: "",

@@ -16,7 +16,11 @@ import {
 import {
   type AdsSettings,
   type AdSlotConfig,
+  type AdItem,
   DEFAULT_ADS_SETTINGS,
+  getSlotAds,
+  getActiveAds,
+  generateAdId,
 } from "@/lib/ads-settings";
 import { uploadToCloudinary } from "@/lib/cloudinary-service";
 import { SocialIcon } from "@/components/social-icons";
@@ -50,6 +54,13 @@ import {
   Check,
   X,
   Layers,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  PlusCircle,
+  Shuffle,
+  Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -940,6 +951,8 @@ function AdsSettingsTab() {
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [activePreview, setActivePreview] = useState<string | null>(null);
+  const [expandedAdId, setExpandedAdId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ slotId: string; adId: string; title: string } | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -947,10 +960,26 @@ function AdsSettingsTab() {
     setHasChanges(false);
   }, [ads]);
 
-  const handleSlotFieldChange = (
-    slotId: "leaderboard" | "sidebar" | "in-article" | "billboard",
-    field: keyof AdSlotConfig,
-    value: any
+  // Toggle whole slot enabled/disabled
+  const handleToggleSlot = (slotId: string, enabled: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      slots: {
+        ...prev.slots,
+        [slotId]: {
+          ...(prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId]),
+          enabled,
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  // Change slot rotation strategy
+  const handleUpdateSlotRotation = (
+    slotId: string,
+    strategy: "random" | "carousel",
+    intervalSeconds?: number
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -958,11 +987,137 @@ function AdsSettingsTab() {
         ...prev.slots,
         [slotId]: {
           ...(prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId]),
-          [field]: value,
+          rotationStrategy: strategy,
+          rotationIntervalSeconds: intervalSeconds ?? (prev.slots[slotId]?.rotationIntervalSeconds || 8),
         },
       },
     }));
     setHasChanges(true);
+  };
+
+  // Add a new ad to this slot
+  const handleAddAdToSlot = (slotId: string) => {
+    const newAd: AdItem = {
+      id: generateAdId(),
+      sponsorName: "",
+      title: "",
+      description: "",
+      imageUrl: "",
+      linkUrl: "",
+      ctaText: "Visit Sponsor",
+      displayStyle: "card",
+      enabled: true,
+      openInNewTab: true,
+    };
+
+    setFormData((prev) => {
+      const slot = prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId];
+      const existingAds = getSlotAds(slot);
+      return {
+        ...prev,
+        slots: {
+          ...prev.slots,
+          [slotId]: {
+            ...slot,
+            ads: [...existingAds, newAd],
+          },
+        },
+      };
+    });
+    setExpandedAdId(newAd.id);
+    setHasChanges(true);
+    toast.success("New advertisement campaign added.");
+  };
+
+  // Update a specific ad in a slot
+  const handleUpdateAd = (slotId: string, adId: string, updates: Partial<AdItem>) => {
+    setFormData((prev) => {
+      const slot = prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId];
+      const existingAds = getSlotAds(slot);
+      const updatedAds = existingAds.map((ad) => (ad.id === adId ? { ...ad, ...updates } : ad));
+      return {
+        ...prev,
+        slots: {
+          ...prev.slots,
+          [slotId]: {
+            ...slot,
+            ads: updatedAds,
+          },
+        },
+      };
+    });
+    setHasChanges(true);
+  };
+
+  // Delete a specific ad
+  const handleDeleteAd = (slotId: string, adId: string) => {
+    setFormData((prev) => {
+      const slot = prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId];
+      const existingAds = getSlotAds(slot);
+      const updatedAds = existingAds.filter((ad) => ad.id !== adId);
+      return {
+        ...prev,
+        slots: {
+          ...prev.slots,
+          [slotId]: {
+            ...slot,
+            ads: updatedAds,
+          },
+        },
+      };
+    });
+    setDeleteTarget(null);
+    setHasChanges(true);
+    toast.success("Advertisement campaign removed.");
+  };
+
+  // Duplicate an ad
+  const handleDuplicateAd = (slotId: string, ad: AdItem) => {
+    const duplicated: AdItem = {
+      ...ad,
+      id: generateAdId(),
+      title: ad.title ? `${ad.title} (Copy)` : "Campaign Copy",
+    };
+    setFormData((prev) => {
+      const slot = prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId];
+      const existingAds = getSlotAds(slot);
+      return {
+        ...prev,
+        slots: {
+          ...prev.slots,
+          [slotId]: {
+            ...slot,
+            ads: [...existingAds, duplicated],
+          },
+        },
+      };
+    });
+    setExpandedAdId(duplicated.id);
+    setHasChanges(true);
+    toast.success("Campaign duplicated.");
+  };
+
+  // Image upload for a specific ad
+  const handleAdImageUpload = async (slotId: string, adId: string, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose a valid image file (JPG, PNG, WebP, GIF).");
+      return;
+    }
+    const uploadKey = `${slotId}-${adId}`;
+    setUploadingSlot(uploadKey);
+    setUploadProgress(0);
+    const toastId = toast.loading("Uploading banner image to Cloudinary...");
+    try {
+      const url = await uploadToCloudinary(file, (pct) => setUploadProgress(pct));
+      handleUpdateAd(slotId, adId, { imageUrl: url });
+      toast.success("Banner image uploaded successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to upload image. Please check Cloudinary settings.", { id: toastId });
+    } finally {
+      setUploadingSlot(null);
+      setUploadProgress(0);
+    }
   };
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -972,7 +1127,7 @@ function AdsSettingsTab() {
     try {
       await saveAds(formData);
       setHasChanges(false);
-      toast.success("Advertisement settings saved successfully!", { id: toastId });
+      toast.success("Advertisement campaigns saved successfully!", { id: toastId });
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Failed to save advertisement settings.", { id: toastId });
@@ -985,31 +1140,21 @@ function AdsSettingsTab() {
     setFormData(DEFAULT_ADS_SETTINGS);
     setHasChanges(true);
     setResetDialogOpen(false);
-    toast.info("Reset to default ad configurations. Click 'Save Changes' to apply.");
+    toast.info("Reset to default ad configurations. Click 'Save All Changes' to apply.");
   };
 
-  const handleImageFileSelected = async (
-    slotId: "leaderboard" | "sidebar" | "in-article" | "billboard",
-    file: File
-  ) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please choose a valid image file (JPG, PNG, WebP, GIF).");
-      return;
+  const getAdStatusBadge = (ad: AdItem) => {
+    if (!ad.enabled) {
+      return { label: "Paused", className: "bg-muted text-muted-foreground border-border" };
     }
-    setUploadingSlot(slotId);
-    setUploadProgress(0);
-    const toastId = toast.loading(`Uploading image for ${slotId}...`);
-    try {
-      const url = await uploadToCloudinary(file, (pct) => setUploadProgress(pct));
-      handleSlotFieldChange(slotId, "imageUrl", url);
-      toast.success("Banner image uploaded successfully!", { id: toastId });
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Failed to upload image. Please check Cloudinary settings.", { id: toastId });
-    } finally {
-      setUploadingSlot(null);
-      setUploadProgress(0);
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (ad.startDate && ad.startDate > todayStr) {
+      return { label: `Starts ${ad.startDate}`, className: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30" };
     }
+    if (ad.endDate && ad.endDate < todayStr) {
+      return { label: `Expired ${ad.endDate}`, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30" };
+    }
+    return { label: "Active", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-semibold" };
   };
 
   return (
@@ -1022,10 +1167,10 @@ function AdsSettingsTab() {
           </div>
           <div>
             <h2 className="text-base font-bold text-foreground">
-              Advertisement Placements & Sponsorships
+              Advertisement & Multi-Campaign Management
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Manage client banner ads across 4 strategic placement zones. Real-time updates sync directly to the live site.
+              Run multiple sponsor campaigns concurrently. Manage rotation (random per view or timed carousel), scheduling dates, and live sync.
             </p>
           </div>
         </div>
@@ -1059,8 +1204,9 @@ function AdsSettingsTab() {
       <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
         <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-foreground font-semibold">How it works: </strong>
-          Each slot can either display a sponsor’s custom banner image or a branded editorial inquiry card. If an ad slot has an image, clicking it will take the reader to the destination URL. If no custom image or sponsor is provided, it automatically falls back to inviting advertisers to contact your email.
+          <strong className="text-foreground font-semibold">Managing Multiple Advertisements: </strong>
+          You can add multiple sponsor campaigns to any slot (e.g. 3 different leaderboard sponsors).
+          Choose <strong>Random Rotation</strong> to distribute impressions evenly across page loads, or <strong>Carousel Rotation</strong> to cycle between them every 8 seconds. You can pause or schedule ads with Start/End dates at any time.
         </div>
       </div>
 
@@ -1069,8 +1215,10 @@ function AdsSettingsTab() {
         {AD_SLOT_DEFINITIONS.map((def) => {
           const slot = formData.slots[def.id] || DEFAULT_ADS_SETTINGS.slots[def.id];
           const isEnabled = slot.enabled;
-          const isUploading = uploadingSlot === def.id;
+          const adsList = getSlotAds(slot);
+          const activeAdsList = getActiveAds(slot);
           const isPreviewOpen = activePreview === def.id;
+          const rotationStrategy = slot.rotationStrategy || "random";
 
           return (
             <div
@@ -1099,28 +1247,33 @@ function AdsSettingsTab() {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {def.badge}
                       </span>
+                      <span className="rounded-full bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 text-[10px] font-bold">
+                        {adsList.length === 0
+                          ? "Default Editorial"
+                          : `${activeAdsList.length} Active / ${adsList.length} Total`}
+                      </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{def.location}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 self-end sm:self-center">
-                  {/* Enable/Disable Toggle */}
+                  {/* Enable/Disable Slot Toggle */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground">
                       {isEnabled ? (
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                          <Check className="h-3 w-3" /> Active
+                          <Check className="h-3 w-3" /> Slot Active
                         </span>
                       ) : (
                         <span className="text-muted-foreground flex items-center gap-1">
-                          <X className="h-3 w-3" /> Disabled
+                          <X className="h-3 w-3" /> Slot Disabled
                         </span>
                       )}
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleSlotFieldChange(def.id, "enabled", !isEnabled)}
+                      onClick={() => handleToggleSlot(def.id, !isEnabled)}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         isEnabled ? "bg-primary" : "bg-muted-foreground/30"
                       }`}
@@ -1135,280 +1288,484 @@ function AdsSettingsTab() {
                 </div>
               </div>
 
-              {/* Card Body */}
-              <div className="p-4 sm:p-5 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Sponsor Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Sponsor / Client Name
-                    </label>
-                    <input
-                      type="text"
-                      value={slot.sponsorName || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "sponsorName", e.target.value)}
-                      placeholder="e.g. Ethiopian Airlines, Safaricom, CBE"
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Displayed on the badge label above or inside the ad.
-                    </p>
-                  </div>
-
-                  {/* Headline / Title */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Ad Headline / Campaign Title
-                    </label>
-                    <input
-                      type="text"
-                      value={slot.title || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "title", e.target.value)}
-                      placeholder="e.g. Fly direct to 130+ destinations with award-winning comfort"
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Prominent headline displayed in the native ad card.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Description & CTA text */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Campaign Tagline / Description */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Campaign Tagline / Description
-                    </label>
-                    <input
-                      type="text"
-                      value={slot.description || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "description", e.target.value)}
-                      placeholder="e.g. Book now to receive 20% discount on flights across Africa and Europe."
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Short supporting message that gives readers context about the offer.
-                    </p>
-                  </div>
-
-                  {/* CTA Button Text */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Action Button Text
-                    </label>
-                    <input
-                      type="text"
-                      value={slot.ctaText || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "ctaText", e.target.value)}
-                      placeholder="e.g. Visit Sponsor, Learn More, Book Now, Shop Now"
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Text displayed on the call-to-action button (defaults to "Visit Sponsor").
-                    </p>
-                  </div>
-                </div>
-
-                {/* Target URL, Display Format & Open New Tab */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Destination Click Link (URL)
-                    </label>
-                    <input
-                      type="url"
-                      value={slot.linkUrl || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "linkUrl", e.target.value)}
-                      placeholder="https://example.com/promotion"
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Where readers are redirected when clicking the ad.
-                    </p>
-                  </div>
-
-                  {/* Display Format selector */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-foreground">
-                      Display Format
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleSlotFieldChange(def.id, "displayStyle", "card")}
-                        disabled={!isEnabled}
-                        className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
-                          (slot.displayStyle || "card") === "card"
-                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Native Card
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSlotFieldChange(def.id, "displayStyle", "banner")}
-                        disabled={!isEnabled}
-                        className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
-                          slot.displayStyle === "banner"
-                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Full Banner
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      Native Card (image + text + CTA) vs Full Banner graphic.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 pb-2">
-                    <input
-                      type="checkbox"
-                      id={`newtab-${def.id}`}
-                      checked={slot.openInNewTab !== false}
-                      onChange={(e) => handleSlotFieldChange(def.id, "openInNewTab", e.target.checked)}
-                      disabled={!isEnabled}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                    />
-                    <label
-                      htmlFor={`newtab-${def.id}`}
-                      className="text-xs font-medium text-foreground cursor-pointer select-none"
-                    >
-                      Open link in new tab
-                    </label>
-                  </div>
-                </div>
-
-                {/* Banner Image URL & Cloudinary Upload */}
-                <div className="space-y-2 pt-1 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                      <span>Banner Image (Recommended: {def.recommendedSize})</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground">{def.aspectDesc}</span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <input
-                      type="url"
-                      value={slot.imageUrl || ""}
-                      onChange={(e) => handleSlotFieldChange(def.id, "imageUrl", e.target.value)}
-                      placeholder="https://res.cloudinary.com/... or paste image URL"
-                      disabled={!isEnabled}
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                    />
-
-                    {/* Hidden file input for Cloudinary upload */}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={(el) => {
-                        fileInputRefs.current[def.id] = el;
-                      }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageFileSelected(def.id, file);
-                        e.target.value = "";
-                      }}
-                    />
-
+              {/* Slot Settings & Sub-header Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/30 px-4 py-2.5 sm:px-5 border-b border-border/60">
+                {/* Rotation Strategy selection */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Rotation Mode:
+                  </span>
+                  <div className="flex items-center gap-1 bg-background rounded-xl p-0.5 border border-border">
                     <button
                       type="button"
-                      onClick={() => fileInputRefs.current[def.id]?.click()}
-                      disabled={!isEnabled || isUploading}
-                      className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                      onClick={() => handleUpdateSlotRotation(def.id, "random")}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rotationStrategy === "random"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Randomly picks one active ad on each page load"
                     >
-                      <Upload className="h-3.5 w-3.5" />
-                      <span>{isUploading ? `Uploading ${uploadProgress}%` : "Upload Image"}</span>
+                      <Shuffle className="h-3 w-3" />
+                      <span>Random per View</span>
                     </button>
-
-                    {slot.imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => handleSlotFieldChange(def.id, "imageUrl", "")}
-                        disabled={!isEnabled}
-                        className="rounded-xl border border-border p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                        title="Remove image"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSlotRotation(def.id, "carousel")}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rotationStrategy === "carousel"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Automatically cycles between active ads every 8 seconds"
+                    >
+                      <Repeat className="h-3 w-3" />
+                      <span>Timed Carousel (8s)</span>
+                    </button>
                   </div>
-
-                  {/* Image Preview & Details */}
-                  {slot.imageUrl && (
-                    <div className="relative mt-2 rounded-xl border border-border overflow-hidden bg-neutral-900/50 p-2 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <img
-                          src={slot.imageUrl}
-                          alt="Banner preview"
-                          className="h-14 max-w-[180px] object-cover rounded-lg border border-border/60"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">
-                            {slot.sponsorName || "Custom Banner"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {slot.imageUrl}
-                          </p>
-                        </div>
-                      </div>
-                      <a
-                        href={slot.imageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline shrink-0 pr-2"
-                      >
-                        <span>View original</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
                 </div>
 
+                {/* Add Campaign Button */}
+                <button
+                  type="button"
+                  onClick={() => handleAddAdToSlot(def.id)}
+                  disabled={!isEnabled}
+                  className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span>Add Advertisement</span>
+                </button>
+              </div>
+
+              {/* Campaigns List for this Slot */}
+              <div className="p-4 sm:p-5 space-y-4">
+                {adsList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-8 text-center bg-background/50">
+                    <Megaphone className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <h4 className="text-xs font-bold text-foreground">
+                      No custom sponsor campaigns in this slot yet
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground max-w-sm mt-0.5 mb-3">
+                      The site automatically displays the editorial advertising inquiry card. Click below to add your first client campaign.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAddAdToSlot(def.id)}
+                      disabled={!isEnabled}
+                      className="flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Create First Campaign</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {adsList.map((ad, idx) => {
+                      const isExpanded = expandedAdId === ad.id;
+                      const status = getAdStatusBadge(ad);
+                      const isUploadingThis = uploadingSlot === `${def.id}-${ad.id}`;
+
+                      return (
+                        <div
+                          key={ad.id}
+                          className={`rounded-xl border transition-all ${
+                            isExpanded
+                              ? "border-primary/50 bg-background shadow-xs ring-1 ring-primary/20"
+                              : "border-border bg-card/60 hover:bg-card"
+                          }`}
+                        >
+                          {/* Ad Header Row */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Quick Thumbnail */}
+                              <div className="h-11 w-16 rounded-lg border border-border/70 overflow-hidden bg-muted shrink-0">
+                                {ad.imageUrl ? (
+                                  <img
+                                    src={ad.imageUrl}
+                                    alt={ad.title || "Ad"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground font-bold">
+                                    No Img
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Titles */}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                    #{idx + 1}
+                                  </span>
+                                  <h4 className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">
+                                    {ad.sponsorName ? `${ad.sponsorName} — ` : ""}
+                                    {ad.title || "Untitled Campaign"}
+                                  </h4>
+                                  <span
+                                    className={`rounded-full border px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider ${status.className}`}
+                                  >
+                                    {status.label}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground truncate max-w-sm mt-0.5">
+                                  {ad.linkUrl || "Default mailto inquiry link"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Actions on this campaign */}
+                            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                              {/* Toggle active switch */}
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateAd(def.id, ad.id, { enabled: !ad.enabled })}
+                                className={`rounded-lg px-2 py-1 text-[10px] font-bold border transition-colors ${
+                                  ad.enabled
+                                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                    : "bg-muted text-muted-foreground border-border"
+                                }`}
+                              >
+                                {ad.enabled ? "Active" : "Paused"}
+                              </button>
+
+                              {/* Duplicate */}
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateAd(def.id, ad)}
+                                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                title="Duplicate Campaign"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    slotId: def.id,
+                                    adId: ad.id,
+                                    title: ad.title || ad.sponsorName || `Campaign #${idx + 1}`,
+                                  })
+                                }
+                                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                title="Delete Campaign"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+
+                              {/* Expand/Collapse */}
+                              <button
+                                type="button"
+                                onClick={() => setExpandedAdId(isExpanded ? null : ad.id)}
+                                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                              >
+                                <span>{isExpanded ? "Close" : "Edit"}</span>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expanded Ad Edit Form */}
+                          {isExpanded && (
+                            <div className="border-t border-border/70 p-4 space-y-4 bg-muted/10">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Sponsor Name */}
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Sponsor / Client Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ad.sponsorName || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { sponsorName: e.target.value })
+                                    }
+                                    placeholder="e.g. Ethiopian Airlines, Safaricom, CBE"
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+
+                                {/* Headline */}
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Campaign Headline / Title
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ad.title || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { title: e.target.value })
+                                    }
+                                    placeholder="e.g. Fly direct to 130+ destinations worldwide"
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Tagline / Description */}
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Campaign Description / Tagline
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ad.description || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { description: e.target.value })
+                                    }
+                                    placeholder="e.g. Special business class discounts available through this month."
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+
+                                {/* Action Button CTA text */}
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Call-to-Action (CTA) Text
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ad.ctaText || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { ctaText: e.target.value })
+                                    }
+                                    placeholder="e.g. Visit Sponsor, Learn More, Book Now"
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Target URL, Display Style & Open in New Tab */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Destination Click Link (URL)
+                                  </label>
+                                  <input
+                                    type="url"
+                                    value={ad.linkUrl || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { linkUrl: e.target.value })
+                                    }
+                                    placeholder="https://example.com/promo"
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+
+                                {/* Display Style */}
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground">
+                                    Display Format
+                                  </label>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateAd(def.id, ad.id, { displayStyle: "card" })
+                                      }
+                                      className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
+                                        (ad.displayStyle || "card") === "card"
+                                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                          : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+                                      }`}
+                                    >
+                                      Native Card
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateAd(def.id, ad.id, { displayStyle: "banner" })
+                                      }
+                                      className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
+                                        ad.displayStyle === "banner"
+                                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                          : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+                                      }`}
+                                    >
+                                      Full Banner
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 pb-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`newtab-${ad.id}`}
+                                    checked={ad.openInNewTab !== false}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { openInNewTab: e.target.checked })
+                                    }
+                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                  />
+                                  <label
+                                    htmlFor={`newtab-${ad.id}`}
+                                    className="text-xs font-medium text-foreground cursor-pointer select-none"
+                                  >
+                                    Open link in new tab
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* Campaign Schedule Dates */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-border/60">
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                                    <span>Schedule Start Date (Optional)</span>
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={ad.startDate || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { startDate: e.target.value })
+                                    }
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                                    <span>Schedule End Date (Optional)</span>
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={ad.endDate || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { endDate: e.target.value })
+                                    }
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Banner Image URL & Cloudinary Upload */}
+                              <div className="space-y-2 pt-1 border-t border-border/60">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                                    <span>Banner Image ({def.recommendedSize})</span>
+                                  </label>
+                                  <span className="text-[10px] text-muted-foreground">{def.aspectDesc}</span>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row items-center gap-2">
+                                  <input
+                                    type="url"
+                                    value={ad.imageUrl || ""}
+                                    onChange={(e) =>
+                                      handleUpdateAd(def.id, ad.id, { imageUrl: e.target.value })
+                                    }
+                                    placeholder="https://res.cloudinary.com/... or paste image link"
+                                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                  />
+
+                                  {/* Hidden file input */}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    ref={(el) => {
+                                      fileInputRefs.current[`${def.id}-${ad.id}`] = el;
+                                    }}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleAdImageUpload(def.id, ad.id, file);
+                                      e.target.value = "";
+                                    }}
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => fileInputRefs.current[`${def.id}-${ad.id}`]?.click()}
+                                    disabled={isUploadingThis}
+                                    className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+                                  >
+                                    <Upload className="h-3.5 w-3.5" />
+                                    <span>{isUploadingThis ? `Uploading ${uploadProgress}%` : "Upload Image"}</span>
+                                  </button>
+
+                                  {ad.imageUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateAd(def.id, ad.id, { imageUrl: "" })}
+                                      className="rounded-xl border border-border p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                                      title="Remove image"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Image Preview */}
+                                {ad.imageUrl && (
+                                  <div className="relative mt-2 rounded-xl border border-border overflow-hidden bg-neutral-900/50 p-2 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                      <img
+                                        src={ad.imageUrl}
+                                        alt="Banner preview"
+                                        className="h-14 max-w-[180px] object-cover rounded-lg border border-border/60"
+                                      />
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-foreground truncate">
+                                          {ad.sponsorName || "Custom Banner"}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground truncate">
+                                          {ad.imageUrl}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={ad.imageUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline shrink-0 pr-2"
+                                    >
+                                      <span>View original</span>
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Live Preview Accordion Toggle */}
-                <div className="pt-2">
+                <div className="pt-2 border-t border-border/60">
                   <button
                     type="button"
                     onClick={() => setActivePreview(isPreviewOpen ? null : def.id)}
                     className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
                   >
                     <Eye className="h-3.5 w-3.5" />
-                    <span>{isPreviewOpen ? "Hide Live Banner Preview" : "Show Live Banner Preview"}</span>
+                    <span>{isPreviewOpen ? "Hide Live Simulator" : "Show Live Simulator & Rotation"}</span>
                   </button>
 
                   {isPreviewOpen && (
                     <div className="mt-3 rounded-2xl border border-border/80 bg-neutral-950/20 p-4 sm:p-6 overflow-hidden">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Simulated Site Render (Live Component)
+                          Simulated Site Render ({activeAdsList.length} Active in rotation)
                         </span>
                         <span className="text-[10px] text-muted-foreground font-mono">
                           Slot ID: {def.id}
                         </span>
                       </div>
                       <div className="bg-background rounded-xl border border-border/60 p-2">
-                        {/* Real live AdBanner component */}
-                        <AdBanner
-                          variant={def.id}
-                          imageUrl={slot.imageUrl}
-                          linkUrl={slot.linkUrl}
-                          title={slot.title}
-                          sponsorName={slot.sponsorName}
-                          description={slot.description}
-                          ctaText={slot.ctaText}
-                          displayStyle={slot.displayStyle}
-                        />
+                        {/* Real live AdBanner component with multi-ad rotation */}
+                        <AdBanner variant={def.id} />
                       </div>
                     </div>
                   )}
@@ -1424,7 +1781,7 @@ function AdsSettingsTab() {
         <div className="sticky bottom-6 z-20 flex items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-card p-4 shadow-lg ring-1 ring-primary/20 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>You have unsaved changes in your advertisement configuration.</span>
+            <span>You have unsaved changes in your advertisement campaigns.</span>
           </div>
           <button
             type="button"
@@ -1437,6 +1794,20 @@ function AdsSettingsTab() {
           </button>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Advertisement Campaign?"
+        description={`Are you sure you want to remove "${deleteTarget?.title}" from this ad placement?`}
+        confirmLabel="Delete Campaign"
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDeleteAd(deleteTarget.slotId, deleteTarget.adId);
+          }
+        }}
+      />
 
       {/* Reset Confirmation Dialog */}
       <ConfirmDialog

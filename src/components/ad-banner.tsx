@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/language-context";
 import { useContact } from "@/contexts/contact-context";
 import { useAds } from "@/contexts/ads-context";
-import { ExternalLink, Sparkles, Tag } from "lucide-react";
+import { getActiveAds, type AdItem } from "@/lib/ads-settings";
+import { ExternalLink, Sparkles, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 
 export type AdVariant = "leaderboard" | "sidebar" | "in-article" | "billboard";
 
@@ -41,16 +42,52 @@ export function AdBanner({
     return null;
   }
 
-  const effectiveImageUrl = !imgLoadError ? (imageUrl || slot?.imageUrl) : "";
-  const effectiveSponsorName = sponsorName || slot?.sponsorName;
-  const effectiveTitle = title || slot?.title;
-  const effectiveDescription = description || slot?.description;
-  const effectiveCtaText = ctaText || slot?.ctaText;
-  const effectiveDisplayStyle = displayStyle || slot?.displayStyle || "card";
-  const openInNewTab = slot?.openInNewTab !== false;
+  // Active ads for this slot
+  const activeAds = getActiveAds(slot);
+
+  // Pick initial ad (randomized on page load if multiple ads are configured)
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (activeAds.length > 1 && slot?.rotationStrategy !== "carousel") {
+      return Math.floor(Math.random() * activeAds.length);
+    }
+    return 0;
+  });
+
+  // Keep index within bounds if activeAds length changes
+  useEffect(() => {
+    if (currentIndex >= activeAds.length) {
+      setCurrentIndex(0);
+    }
+  }, [activeAds.length, currentIndex]);
+
+  // Timed carousel rotation if rotationStrategy is "carousel" and multiple ads exist
+  useEffect(() => {
+    if (slot?.rotationStrategy === "carousel" && activeAds.length > 1) {
+      const intervalMs = Math.max(4, slot.rotationIntervalSeconds || 8) * 1000;
+      const timer = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % activeAds.length);
+      }, intervalMs);
+      return () => clearInterval(timer);
+    }
+  }, [slot?.rotationStrategy, slot?.rotationIntervalSeconds, activeAds.length]);
+
+  // Current active ad (or undefined if no custom ads)
+  const activeAd: AdItem | undefined = activeAds[currentIndex] || activeAds[0];
+
+  const effectiveImageUrl = !imgLoadError
+    ? (imageUrl || activeAd?.imageUrl || slot?.imageUrl || "")
+    : "";
+  const effectiveSponsorName = sponsorName || activeAd?.sponsorName || slot?.sponsorName;
+  const effectiveTitle = title || activeAd?.title || slot?.title;
+  const effectiveDescription = description || activeAd?.description || slot?.description;
+  const effectiveCtaText = ctaText || activeAd?.ctaText || slot?.ctaText;
+  const effectiveDisplayStyle =
+    displayStyle || activeAd?.displayStyle || slot?.displayStyle || "card";
+  const openInNewTab = (activeAd?.openInNewTab ?? slot?.openInNewTab) !== false;
 
   const effectiveLinkUrl =
     linkUrl ||
+    activeAd?.linkUrl ||
     slot?.linkUrl ||
     `mailto:${contact.advertisingEmail || contact.email || "otemesgen@gmail.com"}?subject=Advertising%20Inquiry`;
 
@@ -69,6 +106,9 @@ export function AdBanner({
   };
   const fallbackCta = defaultCtaMap[language] || "Visit Sponsor";
   const actionButtonText = effectiveCtaText || fallbackCta;
+
+  // Multi-ad indicators if more than 1 ad is active
+  const hasMultipleAds = activeAds.length > 1;
 
   // ─────────────────────────────────────────────────────────────
   // 1. LEADERBOARD (Top Billboard Banner: 728×90 / responsive)
