@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/language-context";
+import { useSocialLinks } from "@/contexts/social-context";
 
 interface SEOProps {
   title: string;
@@ -34,6 +35,7 @@ export function SEO({
   canonicalUrl,
 }: SEOProps) {
   const { language } = useLanguage();
+  const { activeLinks } = useSocialLinks();
 
   useEffect(() => {
     // 1. Page Title
@@ -151,12 +153,15 @@ export function SEO({
         url: SITE_URL,
         logo: `${SITE_URL}/favicon.ico`,
         description: description,
-        sameAs: [
-          "https://www.facebook.com/EThReporter",
-          "https://t.me/EthiopianReporterAmharic",
-          "https://twitter.com/ethioreporter",
-          "https://www.youtube.com/@ethiopiareporter",
-        ],
+        sameAs:
+          activeLinks && activeLinks.length > 0
+            ? activeLinks.map((l) => l.href)
+            : [
+                "https://www.facebook.com/EThReporter",
+                "https://t.me/EthiopianReporterAmharic",
+                "https://twitter.com/ethioreporter",
+                "https://www.youtube.com/@ethiopiareporter",
+              ],
       };
       script.text = JSON.stringify(orgSchema);
     }
@@ -167,7 +172,7 @@ export function SEO({
       const el = document.getElementById("structured-data-jsonld");
       if (el) el.remove();
     };
-  }, [title, description, image, article, type, canonicalUrl, language]);
+  }, [title, description, image, article, type, canonicalUrl, language, activeLinks]);
 
   return null;
 }

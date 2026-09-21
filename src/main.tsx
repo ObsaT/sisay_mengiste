@@ -4,6 +4,7 @@ import { getRouter } from "./router";
 import { AuthProvider } from "./contexts/auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { LanguageProvider } from "./contexts/language-context";
+import { SocialProvider } from "./contexts/social-context";
 import { Toaster } from "sonner";
 
 import "./styles.css";
@@ -17,15 +18,17 @@ createRoot(rootElement).render(
   <QueryClientProvider client={new QueryClient()}>
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <RouterProvider router={router} />
-          <Toaster
-            position="bottom-right"
-            richColors
-            closeButton
-            toastOptions={{ duration: 4000 }}
-          />
-        </AuthProvider>
+        <SocialProvider>
+          <AuthProvider>
+            <RouterProvider router={router} />
+            <Toaster
+              position="bottom-right"
+              richColors
+              closeButton
+              toastOptions={{ duration: 4000 }}
+            />
+          </AuthProvider>
+        </SocialProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>,

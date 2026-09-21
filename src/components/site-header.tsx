@@ -16,7 +16,8 @@ import {
   Globe,
   Sparkles,
 } from "lucide-react";
-import { SOCIALS } from "@/lib/news-data";
+import { useSocialLinks } from "@/contexts/social-context";
+import { SocialIcon } from "@/components/social-icons";
 import { useTheme } from "@/contexts/theme-context";
 import { useLanguage } from "@/contexts/language-context";
 import { type Language } from "@/lib/i18n";
@@ -154,38 +155,27 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
 
 /* ── Social icons ────────────────────────────────────────────────── */
 
-const SOCIAL_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  Facebook,
-  Telegram: Send,
-  X: Twitter,
-  YouTube: Youtube,
-  TikTok: () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
-      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.43v-7.15a8.16 8.16 0 005.58 2.18v-3.45a4.85 4.85 0 01-5.58-2.67z" />
-    </svg>
-  ),
-  LinkedIn: Linkedin,
-};
-
 export function SocialLinks({ className = "" }: { className?: string }) {
+  const { activeLinks } = useSocialLinks();
+
+  if (!activeLinks || activeLinks.length === 0) return null;
+
   return (
     <ul className={`flex items-center gap-1.5 ${className}`}>
-      {SOCIALS.map((s) => {
-        const Icon = SOCIAL_ICONS[s.label];
-        return (
-          <li key={s.label}>
-            <a
-              href={s.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={s.label}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-foreground/60 transition-all hover:bg-white/10 hover:text-gold"
-            >
-              {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
-            </a>
-          </li>
-        );
-      })}
+      {activeLinks.map((s) => (
+        <li key={s.id}>
+          <a
+            href={s.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={s.label}
+            title={s.label}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-foreground/60 transition-all hover:bg-white/10 hover:text-gold"
+          >
+            <SocialIcon name={s.icon || s.label} className="h-3.5 w-3.5" />
+          </a>
+        </li>
+      ))}
     </ul>
   );
 }
