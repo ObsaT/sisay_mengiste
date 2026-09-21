@@ -12,6 +12,7 @@ import {
   Share2,
   Mail,
   Cloud,
+  Settings,
   Globe,
   Check,
   ExternalLink,
@@ -160,6 +161,7 @@ function AdminLayout() {
   const navItems = [
     { to: "/admin" as const, label: t("adminNavDashboard"), icon: LayoutDashboard, exact: true },
     { to: "/admin/articles/" as const, label: t("adminNavArticles"), icon: FileText },
+    { to: "/admin/settings" as const, label: t("adminNavSettings"), icon: Settings },
     { to: "/admin/social" as const, label: t("adminNavSocial"), icon: Share2 },
     { to: "/admin/contact" as const, label: t("adminNavContact"), icon: Mail },
     { to: "/admin/cloudinary" as const, label: t("adminNavCloudinary"), icon: Cloud },

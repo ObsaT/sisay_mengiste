@@ -16,6 +16,7 @@ import { Route as AdminArticlesRouteImport } from './routes/admin.articles'
 import { Route as AdminCloudinaryRouteImport } from './routes/admin.cloudinary'
 import { Route as AdminContactRouteImport } from './routes/admin.contact'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSocialRouteImport } from './routes/admin.social'
 import { Route as ArticleSlugRouteImport } from './routes/article.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
@@ -57,6 +58,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSocialRoute = AdminSocialRouteImport.update({
   id: '/social',
   path: '/social',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/admin/cloudinary': typeof AdminCloudinaryRoute
   '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/admin/cloudinary': typeof AdminCloudinaryRoute
   '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/admin/cloudinary': typeof AdminCloudinaryRoute
   '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/admin/cloudinary'
     | '/admin/contact'
     | '/admin/login'
+    | '/admin/settings'
     | '/admin/social'
     | '/article/$slug'
     | '/category/$slug'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/admin/cloudinary'
     | '/admin/contact'
     | '/admin/login'
+    | '/admin/settings'
     | '/admin/social'
     | '/article/$slug'
     | '/category/$slug'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/admin/cloudinary'
     | '/admin/contact'
     | '/admin/login'
+    | '/admin/settings'
     | '/admin/social'
     | '/article/$slug'
     | '/category/$slug'
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/social': {
       id: '/admin/social'
       path: '/social'
@@ -282,6 +301,7 @@ interface AdminRouteChildren {
   AdminCloudinaryRoute: typeof AdminCloudinaryRoute
   AdminContactRoute: typeof AdminContactRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSocialRoute: typeof AdminSocialRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -291,6 +311,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCloudinaryRoute: AdminCloudinaryRoute,
   AdminContactRoute: AdminContactRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminSocialRoute: AdminSocialRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
