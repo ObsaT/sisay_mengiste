@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { useLanguage } from "@/contexts/language-context";
+import { useContact } from "@/contexts/contact-context";
 import { ExternalLink, Sparkles } from "lucide-react";
 
 export type AdVariant = "leaderboard" | "sidebar" | "in-article" | "billboard";
@@ -16,12 +16,17 @@ interface AdBannerProps {
 export function AdBanner({
   variant = "leaderboard",
   imageUrl,
-  linkUrl = "mailto:advertise@sisaymengiste.com?subject=Advertising%20Inquiry",
+  linkUrl,
   title,
   sponsorName,
   className = "",
 }: AdBannerProps) {
   const { language } = useLanguage();
+  const { contact } = useContact();
+
+  const effectiveLinkUrl =
+    linkUrl ||
+    `mailto:${contact.advertisingEmail || contact.email || "otemesgen@gmail.com"}?subject=Advertising%20Inquiry`;
 
   const labelMap = {
     am: "ማስታወቂያ",
@@ -40,7 +45,7 @@ export function AdBanner({
             {adLabel}
           </span>
           <a
-            href={linkUrl}
+            href={effectiveLinkUrl}
             target="_blank"
             rel="noopener noreferrer sponsored"
             className="group relative flex w-full items-center justify-between overflow-hidden rounded-xl border border-border/80 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 p-4 sm:p-5 text-white shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
@@ -90,7 +95,7 @@ export function AdBanner({
           {adLabel}
         </span>
         <a
-          href={linkUrl}
+          href={effectiveLinkUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
           className="group relative flex flex-col justify-between w-full min-h-[220px] rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/40 p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md"
@@ -146,7 +151,7 @@ export function AdBanner({
           </span>
         </div>
         <a
-          href={linkUrl}
+          href={effectiveLinkUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
           className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/60 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm"
@@ -190,7 +195,7 @@ export function AdBanner({
         </span>
       </div>
       <a
-        href={linkUrl}
+        href={effectiveLinkUrl}
         target="_blank"
         rel="noopener noreferrer sponsored"
         className="group relative block overflow-hidden rounded-2xl border border-border/80 bg-ink p-6 sm:p-8 text-white shadow-lg transition-all hover:shadow-xl"

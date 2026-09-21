@@ -3,10 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SocialLinks } from "./site-header";
 import { useLanguage } from "@/contexts/language-context";
+import { useContact } from "@/contexts/contact-context";
 import { Send, Mail, Phone, MapPin, ExternalLink } from "lucide-react";
 
 export function SiteFooter() {
   const { t, categories } = useLanguage();
+  const { contact } = useContact();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -132,13 +134,29 @@ export function SiteFooter() {
             {/* Quick Contact info */}
             <div className="mt-5 space-y-1.5 text-[11px] text-ink-foreground/50 border-t border-white/10 pt-4">
               <div className="flex items-center gap-2">
-                <MapPin className="h-3 w-3 text-gold/70" />
-                <span>{t("edition")}</span>
+                <MapPin className="h-3 w-3 text-gold/70 shrink-0" />
+                <span>{contact.location || t("edition")}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="h-3 w-3 text-gold/70" />
-                <span>contact@sisaymengiste.com</span>
+                <Mail className="h-3 w-3 text-gold/70 shrink-0" />
+                <a
+                  href={`mailto:${contact.email || "otemesgen@gmail.com"}`}
+                  className="hover:text-gold transition-colors font-medium truncate"
+                >
+                  {contact.email || "otemesgen@gmail.com"}
+                </a>
               </div>
+              {contact.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-3 w-3 text-gold/70 shrink-0" />
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="hover:text-gold transition-colors font-medium"
+                  >
+                    {contact.phone}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

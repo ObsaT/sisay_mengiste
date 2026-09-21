@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useMatches } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { LayoutDashboard, FileText, PlusCircle, LogOut, Newspaper, Share2 } from "lucide-react";
+import { LayoutDashboard, FileText, PlusCircle, LogOut, Newspaper, Share2, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -77,6 +77,7 @@ function AdminLayout() {
     { to: "/admin" as const, label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/admin/articles/" as const, label: "Articles", icon: FileText },
     { to: "/admin/social" as const, label: "Social Media", icon: Share2 },
+    { to: "/admin/contact" as const, label: "Contact Info", icon: Mail },
   ];
 
   return (

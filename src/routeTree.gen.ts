@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminArticlesRouteImport } from './routes/admin.articles'
+import { Route as AdminContactRouteImport } from './routes/admin.contact'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminSocialRouteImport } from './routes/admin.social'
 import { Route as ArticleSlugRouteImport } from './routes/article.$slug'
@@ -38,6 +39,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AdminArticlesRoute = AdminArticlesRouteImport.update({
   id: '/articles',
   path: '/articles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContactRoute = AdminContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/articles': typeof AdminArticlesRouteWithChildren
+  '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin/articles': typeof AdminArticlesRouteWithChildren
+  '/admin/contact': typeof AdminContactRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/social': typeof AdminSocialRoute
   '/article/$slug': typeof ArticleSlugRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/articles'
+    | '/admin/contact'
     | '/admin/login'
     | '/admin/social'
     | '/article/$slug'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/contact'
     | '/admin/login'
     | '/admin/social'
     | '/article/$slug'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/articles'
+    | '/admin/contact'
     | '/admin/login'
     | '/admin/social'
     | '/article/$slug'
@@ -178,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/articles'
       fullPath: '/admin/articles'
       preLoaderRoute: typeof AdminArticlesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/contact': {
+      id: '/admin/contact'
+      path: '/contact'
+      fullPath: '/admin/contact'
+      preLoaderRoute: typeof AdminContactRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/login': {
@@ -241,6 +260,7 @@ const AdminArticlesRouteWithChildren = AdminArticlesRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminArticlesRoute: typeof AdminArticlesRouteWithChildren
+  AdminContactRoute: typeof AdminContactRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminSocialRoute: typeof AdminSocialRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -248,6 +268,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminArticlesRoute: AdminArticlesRouteWithChildren,
+  AdminContactRoute: AdminContactRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminSocialRoute: AdminSocialRoute,
   AdminIndexRoute: AdminIndexRoute,
