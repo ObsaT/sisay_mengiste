@@ -61,6 +61,8 @@ import {
   PlusCircle,
   Shuffle,
   Repeat,
+  Film,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -978,7 +980,7 @@ function AdsSettingsTab() {
   // Change slot rotation strategy
   const handleUpdateSlotRotation = (
     slotId: string,
-    strategy: "random" | "carousel",
+    strategy: "slideshow" | "carousel" | "random",
     intervalSeconds?: number
   ) => {
     setFormData((prev) => ({
@@ -988,7 +990,7 @@ function AdsSettingsTab() {
         [slotId]: {
           ...(prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId]),
           rotationStrategy: strategy,
-          rotationIntervalSeconds: intervalSeconds ?? (prev.slots[slotId]?.rotationIntervalSeconds || 8),
+          rotationIntervalSeconds: intervalSeconds ?? (prev.slots[slotId]?.rotationIntervalSeconds || 6),
         },
       },
     }));
@@ -1297,6 +1299,22 @@ function AdsSettingsTab() {
                     Rotation Mode:
                   </span>
                   <div className="flex items-center gap-1 bg-background rounded-xl p-0.5 border border-border">
+                    {/* 1. Slide Show */}
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSlotRotation(def.id, "slideshow", rotationInterval)}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rotationStrategy === "slideshow"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Horizontal sliding animation with progress bar timer & play/pause"
+                    >
+                      <Film className="h-3 w-3" />
+                      <span>Slide Show ({rotationInterval}s)</span>
+                    </button>
+
+                    {/* 2. Fade Carousel */}
                     <button
                       type="button"
                       onClick={() => handleUpdateSlotRotation(def.id, "carousel", rotationInterval)}
@@ -1305,11 +1323,13 @@ function AdsSettingsTab() {
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
-                      title="Automatically cycles between active ads smoothly"
+                      title="Gentle fade cross-dissolve between active campaigns"
                     >
                       <Repeat className="h-3 w-3" />
-                      <span>Auto Carousel ({rotationInterval}s)</span>
+                      <span>Fade Carousel</span>
                     </button>
+
+                    {/* 3. Random per View */}
                     <button
                       type="button"
                       onClick={() => handleUpdateSlotRotation(def.id, "random", rotationInterval)}
@@ -1326,14 +1346,14 @@ function AdsSettingsTab() {
                   </div>
 
                   {/* Interval Duration Switcher */}
-                  {rotationStrategy === "carousel" && (
+                  {(rotationStrategy === "slideshow" || rotationStrategy === "carousel") && (
                     <div className="flex items-center gap-1 bg-background rounded-xl p-0.5 border border-border text-[10px] font-bold">
                       <span className="px-1.5 text-muted-foreground">Speed:</span>
                       {[4, 6, 10].map((sec) => (
                         <button
                           key={sec}
                           type="button"
-                          onClick={() => handleUpdateSlotRotation(def.id, "carousel", sec)}
+                          onClick={() => handleUpdateSlotRotation(def.id, rotationStrategy, sec)}
                           className={`rounded px-1.5 py-0.5 transition-all ${
                             rotationInterval === sec
                               ? "bg-primary/20 text-primary font-black"

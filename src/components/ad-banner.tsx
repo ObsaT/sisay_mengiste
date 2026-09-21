@@ -3,7 +3,16 @@ import { useLanguage } from "@/contexts/language-context";
 import { useContact } from "@/contexts/contact-context";
 import { useAds } from "@/contexts/ads-context";
 import { getActiveAds, type AdItem, type AdSlotConfig } from "@/lib/ads-settings";
-import { ExternalLink, Sparkles, Tag, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ExternalLink,
+  Sparkles,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+  Film,
+} from "lucide-react";
 
 export type AdVariant = "leaderboard" | "sidebar" | "in-article" | "billboard";
 
@@ -23,6 +32,9 @@ interface AdBannerProps {
 function CarouselControls({
   count,
   current,
+  isPaused,
+  isSlideshow,
+  onTogglePause,
   onPrev,
   onNext,
   onSelect,
@@ -30,6 +42,9 @@ function CarouselControls({
 }: {
   count: number;
   current: number;
+  isPaused: boolean;
+  isSlideshow: boolean;
+  onTogglePause: (e: React.MouseEvent) => void;
   onPrev: (e: React.MouseEvent) => void;
   onNext: (e: React.MouseEvent) => void;
   onSelect: (idx: number, e: React.MouseEvent) => void;
@@ -39,12 +54,28 @@ function CarouselControls({
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 bg-background/85 backdrop-blur-xs px-2 py-0.5 rounded-full border border-border/70 text-[10px] font-bold text-muted-foreground shadow-2xs ${className}`}
+      className={`inline-flex items-center gap-1.5 bg-background/90 backdrop-blur-xs px-2 py-0.5 rounded-full border border-border/70 text-[10px] font-bold text-muted-foreground shadow-2xs ${className}`}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
       }}
     >
+      {isSlideshow && (
+        <button
+          type="button"
+          onClick={onTogglePause}
+          aria-label={isPaused ? "Resume slideshow" : "Pause slideshow"}
+          className="p-0.5 rounded-full hover:bg-muted text-foreground/70 hover:text-foreground transition-colors cursor-pointer"
+          title={isPaused ? "Play Slideshow" : "Pause Slideshow"}
+        >
+          {isPaused ? (
+            <Play className="h-2.5 w-2.5 text-primary fill-primary" />
+          ) : (
+            <Pause className="h-2.5 w-2.5 text-muted-foreground" />
+          )}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onPrev}
@@ -100,7 +131,12 @@ export function AdBanner({
   const { contact } = useContact();
   const { ads } = useAds();
   const [imgLoadError, setImgLoadError] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isManualPaused, setIsManualPaused] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<"right" | "left">("right");
+
+  // Combined pause state
+  const isPaused = isHovered || isManualPaused;
 
   // Allow custom slot override (e.g. for Admin Live Simulator)
   const slot = customSlot || ads.slots[variant];
@@ -112,8 +148,9 @@ export function AdBanner({
 
   // Active ads for this slot
   const activeAds = getActiveAds(slot);
-  const rotationStrategy = slot?.rotationStrategy || "carousel";
+  const rotationStrategy = slot?.rotationStrategy || "slideshow";
   const rotationInterval = Math.max(3, slot?.rotationIntervalSeconds || 6) * 1000;
+  const isSlideshow = rotationStrategy === "slideshow";
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const randomizedRef = useRef(false);
@@ -133,11 +170,12 @@ export function AdBanner({
     }
   }, [activeAds.length, rotationStrategy, currentIndex]);
 
-  // Timed auto-rotation
+  // Timed auto-rotation (for slideshow and carousel modes)
   useEffect(() => {
     if (activeAds.length <= 1 || isPaused) return;
 
     const timer = setInterval(() => {
+      setSlideDirection("right");
       setCurrentIndex((prev) => {
         if (rotationStrategy === "random") {
           if (activeAds.length === 2) {
@@ -165,6 +203,7 @@ export function AdBanner({
     e.preventDefault();
     e.stopPropagation();
     if (activeAds.length <= 1) return;
+    setSlideDirection("left");
     setCurrentIndex((prev) => (prev - 1 + activeAds.length) % activeAds.length);
   };
 
@@ -172,13 +211,21 @@ export function AdBanner({
     e.preventDefault();
     e.stopPropagation();
     if (activeAds.length <= 1) return;
+    setSlideDirection("right");
     setCurrentIndex((prev) => (prev + 1) % activeAds.length);
   };
 
   const handleSelect = (idx: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setSlideDirection(idx >= currentIndex ? "right" : "left");
     setCurrentIndex(idx);
+  };
+
+  const handleTogglePause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsManualPaused((prev) => !prev);
   };
 
   // Current active ad
@@ -219,6 +266,13 @@ export function AdBanner({
 
   const hasMultipleAds = activeAds.length > 1;
 
+  // Determine transition animation class
+  const transitionClass = isSlideshow
+    ? slideDirection === "right"
+      ? "animate-ad-slide-right w-full"
+      : "animate-ad-slide-left w-full"
+    : "transition-all duration-300 animate-in fade-in w-full";
+
   // ─────────────────────────────────────────────────────────────
   // 1. LEADERBOARD (Top Billboard Banner: 728×90 / responsive)
   // ─────────────────────────────────────────────────────────────
@@ -226,8 +280,8 @@ export function AdBanner({
     return (
       <div
         className={`mx-auto max-w-7xl px-4 py-3 ${className}`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* IAB Disclosure Header */}
         <div className="flex items-center justify-between px-1 mb-1.5">
@@ -240,6 +294,9 @@ export function AdBanner({
               <CarouselControls
                 count={activeAds.length}
                 current={currentIndex}
+                isPaused={isPaused}
+                isSlideshow={isSlideshow}
+                onTogglePause={handleTogglePause}
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onSelect={handleSelect}
@@ -261,7 +318,7 @@ export function AdBanner({
         >
           <div
             key={activeAd?.id || `leaderboard-${currentIndex}`}
-            className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4 transition-all duration-300 animate-in fade-in"
+            className={`flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4 ${transitionClass}`}
           >
             {effectiveDisplayStyle === "banner" && effectiveImageUrl ? (
               // Full Graphic Banner with Hover Badge
@@ -337,6 +394,20 @@ export function AdBanner({
               </>
             )}
           </div>
+
+          {/* Slideshow Progress Bar */}
+          {isSlideshow && hasMultipleAds && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div
+                key={`bar-leaderboard-${currentIndex}-${isPaused}`}
+                className="h-full bg-primary"
+                style={{
+                  animation: isPaused ? "none" : `adProgressBarAnim ${rotationInterval}ms linear forwards`,
+                  width: isPaused ? "100%" : undefined,
+                }}
+              />
+            </div>
+          )}
         </a>
       </div>
     );
@@ -349,8 +420,8 @@ export function AdBanner({
     return (
       <div
         className={`flex flex-col w-full ${className}`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Disclosure Bar */}
         <div className="flex items-center justify-between px-1 mb-1.5">
@@ -363,6 +434,9 @@ export function AdBanner({
               <CarouselControls
                 count={activeAds.length}
                 current={currentIndex}
+                isPaused={isPaused}
+                isSlideshow={isSlideshow}
+                onTogglePause={handleTogglePause}
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onSelect={handleSelect}
@@ -384,7 +458,7 @@ export function AdBanner({
         >
           <div
             key={activeAd?.id || `sidebar-${currentIndex}`}
-            className="w-full transition-all duration-300 animate-in fade-in"
+            className={`w-full ${transitionClass}`}
           >
             {effectiveImageUrl ? (
               <div>
@@ -451,6 +525,20 @@ export function AdBanner({
               </div>
             )}
           </div>
+
+          {/* Slideshow Progress Bar */}
+          {isSlideshow && hasMultipleAds && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div
+                key={`bar-sidebar-${currentIndex}-${isPaused}`}
+                className="h-full bg-primary"
+                style={{
+                  animation: isPaused ? "none" : `adProgressBarAnim ${rotationInterval}ms linear forwards`,
+                  width: isPaused ? "100%" : undefined,
+                }}
+              />
+            </div>
+          )}
         </a>
       </div>
     );
@@ -463,8 +551,8 @@ export function AdBanner({
     return (
       <div
         className={`my-8 border-y border-border/80 bg-muted/20 py-4 px-4 sm:px-6 rounded-2xl ${className}`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Disclosure */}
         <div className="flex items-center justify-between mb-2 px-1">
@@ -477,6 +565,9 @@ export function AdBanner({
               <CarouselControls
                 count={activeAds.length}
                 current={currentIndex}
+                isPaused={isPaused}
+                isSlideshow={isSlideshow}
+                onTogglePause={handleTogglePause}
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onSelect={handleSelect}
@@ -492,11 +583,11 @@ export function AdBanner({
           href={effectiveLinkUrl}
           target={openInNewTab ? "_blank" : undefined}
           rel="noopener noreferrer sponsored"
-          className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/50 hover:shadow-sm"
+          className="group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/50 hover:shadow-sm"
         >
           <div
             key={activeAd?.id || `in-article-${currentIndex}`}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full transition-all duration-300 animate-in fade-in"
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full ${transitionClass}`}
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 flex-1 min-w-0">
               {effectiveImageUrl ? (
@@ -542,6 +633,20 @@ export function AdBanner({
               <ExternalLink className="h-3 w-3" />
             </span>
           </div>
+
+          {/* Slideshow Progress Bar */}
+          {isSlideshow && hasMultipleAds && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div
+                key={`bar-article-${currentIndex}-${isPaused}`}
+                className="h-full bg-primary"
+                style={{
+                  animation: isPaused ? "none" : `adProgressBarAnim ${rotationInterval}ms linear forwards`,
+                  width: isPaused ? "100%" : undefined,
+                }}
+              />
+            </div>
+          )}
         </a>
       </div>
     );
@@ -553,8 +658,8 @@ export function AdBanner({
   return (
     <div
       className={`my-10 ${className}`}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Disclosure */}
       <div className="flex items-center justify-between mb-1.5 px-1">
@@ -567,6 +672,9 @@ export function AdBanner({
             <CarouselControls
               count={activeAds.length}
               current={currentIndex}
+              isPaused={isPaused}
+              isSlideshow={isSlideshow}
+              onTogglePause={handleTogglePause}
               onPrev={handlePrev}
               onNext={handleNext}
               onSelect={handleSelect}
@@ -588,7 +696,7 @@ export function AdBanner({
       >
         <div
           key={activeAd?.id || `billboard-${currentIndex}`}
-          className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 animate-in fade-in"
+          className={`relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 ${transitionClass}`}
         >
           <div className="max-w-xl space-y-2.5">
             <span className="inline-block rounded-full bg-gold/20 px-3 py-0.5 text-xs font-bold text-gold border border-gold/30">
@@ -627,6 +735,20 @@ export function AdBanner({
             </div>
           )}
         </div>
+
+        {/* Slideshow Progress Bar */}
+        {isSlideshow && hasMultipleAds && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 overflow-hidden z-20">
+            <div
+              key={`bar-billboard-${currentIndex}-${isPaused}`}
+              className="h-full bg-gold"
+              style={{
+                animation: isPaused ? "none" : `adProgressBarAnim ${rotationInterval}ms linear forwards`,
+                width: isPaused ? "100%" : undefined,
+              }}
+            />
+          </div>
+        )}
       </a>
     </div>
   );

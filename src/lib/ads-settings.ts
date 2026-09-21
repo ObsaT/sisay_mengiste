@@ -21,7 +21,7 @@ export interface AdSlotConfig {
   name: string;
   enabled: boolean;
   recommendedSize: string;
-  rotationStrategy?: "random" | "carousel";
+  rotationStrategy?: "slideshow" | "carousel" | "random";
   rotationIntervalSeconds?: number;
   ads: AdItem[];
   // Legacy single-ad compatibility
@@ -90,7 +90,7 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       name: "Top Leaderboard Banner",
       enabled: true,
       recommendedSize: "728 × 90 px (or responsive banner)",
-      rotationStrategy: "carousel",
+      rotationStrategy: "slideshow",
       rotationIntervalSeconds: 6,
       ads: [],
       imageUrl: "",
@@ -107,7 +107,7 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       name: "Sidebar Rectangle Ad",
       enabled: true,
       recommendedSize: "300 × 250 px",
-      rotationStrategy: "carousel",
+      rotationStrategy: "slideshow",
       rotationIntervalSeconds: 6,
       ads: [],
       imageUrl: "",
@@ -124,7 +124,7 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       name: "In-Article Interstitial Ad",
       enabled: true,
       recommendedSize: "600 × 200 px (or responsive banner)",
-      rotationStrategy: "carousel",
+      rotationStrategy: "slideshow",
       rotationIntervalSeconds: 6,
       ads: [],
       imageUrl: "",
@@ -141,7 +141,7 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       name: "Bottom Billboard Banner",
       enabled: true,
       recommendedSize: "970 × 250 px (or wide banner)",
-      rotationStrategy: "carousel",
+      rotationStrategy: "slideshow",
       rotationIntervalSeconds: 6,
       ads: [],
       imageUrl: "",

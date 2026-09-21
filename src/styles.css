@@ -370,3 +370,44 @@
 nav a.active span:last-child {
   transform: scaleX(1) !important;
 }
+
+/* ── Advertisement Slideshow Transitions ──────────────────────── */
+@keyframes adSlideInRight {
+  from {
+    opacity: 0.15;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes adSlideInLeft {
+  from {
+    opacity: 0.15;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes adProgressBarAnim {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-ad-slide-right {
+  animation: adSlideInRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-ad-slide-left {
+  animation: adSlideInLeft 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
