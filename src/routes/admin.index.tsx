@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getArticles, type Article } from "@/lib/firestore-service";
+import { fetchSubscribers } from "@/lib/subscribers-service";
 import { seedFirestore } from "@/lib/seed-firestore";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useLanguage } from "@/contexts/language-context";
@@ -14,6 +15,7 @@ import {
   Zap,
   ExternalLink,
   BarChart3,
+  Users,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { toast } from "sonner";
@@ -36,6 +38,7 @@ const CHART_COLORS = [
 function AdminDashboard() {
   const { t } = useLanguage();
   const [articles, setArticles] = useState<Article[]>([]);
+  const [subscribersCount, setSubscribersCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [seedOpen, setSeedOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -48,6 +51,9 @@ function AdminDashboard() {
 
   useEffect(() => {
     loadArticles();
+    fetchSubscribers()
+      .then((subs) => setSubscribersCount(subs.length))
+      .catch(console.error);
   }, []);
 
   const handleSeed = async () => {
@@ -75,11 +81,11 @@ function AdminDashboard() {
   const breaking = articles.filter((a) => a.breaking).length;
 
   const stats = [
-    { label: t("adminTotalArticles"), value: articles.length, icon: FileText, color: "text-blue-500 bg-blue-50" },
-    { label: t("adminPublished"), value: published, icon: Eye, color: "text-green-600 bg-green-50" },
-    { label: t("adminDrafts"), value: drafts, icon: Clock, color: "text-yellow-600 bg-yellow-50" },
-    { label: t("adminFeatured"), value: featured, icon: TrendingUp, color: "text-purple-600 bg-purple-50" },
-    { label: t("adminBreaking"), value: breaking, icon: Zap, color: "text-red-600 bg-red-50" },
+    { label: t("adminTotalArticles"), value: articles.length, icon: FileText, color: "text-blue-500 bg-blue-50", link: "/admin/articles" },
+    { label: t("adminPublished"), value: published, icon: Eye, color: "text-green-600 bg-green-50", link: "/admin/articles" },
+    { label: t("adminDrafts"), value: drafts, icon: Clock, color: "text-yellow-600 bg-yellow-50", link: "/admin/articles" },
+    { label: t("adminNavSubscribers"), value: subscribersCount, icon: Users, color: "text-purple-600 bg-purple-50", link: "/admin/subscribers" },
+    { label: t("adminBreaking"), value: breaking, icon: Zap, color: "text-red-600 bg-red-50", link: "/admin/articles" },
   ];
 
   // Articles by section chart data
@@ -133,17 +139,29 @@ function AdminDashboard() {
 
       {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
+        {stats.map((stat) => {
+          const Content = (
+            <div className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.color}`}>
+                  <stat.icon className="h-4 w-4" />
+                </div>
               </div>
+              <p className="mt-2 text-3xl font-bold text-foreground">{loading ? "—" : stat.value}</p>
             </div>
-            <p className="mt-2 text-3xl font-bold text-foreground">{loading ? "—" : stat.value}</p>
-          </div>
-        ))}
+          );
+
+          if (stat.link) {
+            return (
+              <Link key={stat.label} to={stat.link} className="block">
+                {Content}
+              </Link>
+            );
+          }
+
+          return <div key={stat.label}>{Content}</div>;
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">

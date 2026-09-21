@@ -4,10 +4,11 @@ import { toast } from "sonner";
 import { SocialLinks } from "./site-header";
 import { useLanguage } from "@/contexts/language-context";
 import { useContact } from "@/contexts/contact-context";
+import { subscribeEmail } from "@/lib/subscribers-service";
 import { Send, Mail, Phone, MapPin, ExternalLink } from "lucide-react";
 
 export function SiteFooter() {
-  const { t, categories } = useLanguage();
+  const { t, categories, language } = useLanguage();
   const { contact } = useContact();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -16,12 +17,22 @@ export function SiteFooter() {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    toast.success(t("subscribedToast"), {
-      description: t("subscribedDesc"),
-    });
-    setEmail("");
-    setSubmitting(false);
+    try {
+      const res = await subscribeEmail(email, language);
+      if (res.isNew) {
+        toast.success(t("subscribedToast"), {
+          description: t("subscribedDesc"),
+        });
+      } else {
+        toast.info(t("alreadySubscribed") || "You are already subscribed to our newsletter!");
+      }
+      setEmail("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Subscription failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const sections = categories.filter((n) => n.slug);

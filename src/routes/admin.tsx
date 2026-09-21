@@ -13,6 +13,7 @@ import {
   Globe,
   Check,
   ExternalLink,
+  Users,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -158,6 +159,7 @@ function AdminLayout() {
   const navItems = [
     { to: "/admin" as const, label: t("adminNavDashboard"), icon: LayoutDashboard, exact: true },
     { to: "/admin/articles/" as const, label: t("adminNavArticles"), icon: FileText },
+    { to: "/admin/subscribers" as const, label: t("adminNavSubscribers"), icon: Users },
     { to: "/admin/settings" as const, label: t("adminNavSettings"), icon: Settings },
   ];
 
