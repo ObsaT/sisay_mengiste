@@ -97,6 +97,12 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
             >
               {localizedSection}
             </Link>
+            {article.breaking && (
+              <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                {t("breaking")}
+              </span>
+            )}
             {isTranslated && (
               <span className="text-[9px] font-semibold text-gold bg-gold/10 px-1 rounded">AI</span>
             )}
@@ -142,6 +148,12 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
             >
               {localizedSection}
             </Link>
+            {article.breaking && (
+              <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                {t("breaking")}
+              </span>
+            )}
             {isTranslated && (
               <span className="text-[10px] font-bold text-gold bg-gold/10 px-1.5 py-0.2 rounded">
                 Translated
@@ -205,6 +217,12 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
             >
               {localizedSection}
             </Link>
+            {article.breaking && (
+              <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                {t("breaking")}
+              </span>
+            )}
             {isTranslated && (
               <span className="text-[10px] font-semibold text-gold bg-gold/10 px-1.5 py-0.5 rounded-full">
                 AI Translated

@@ -445,14 +445,26 @@ function ArticlePage() {
         )}
 
         <article className="mt-6">
-          {/* Section badge */}
-          <Link
-            to="/category/$slug"
-            params={{ slug: catSlug }}
-            className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors"
-          >
-            {localizedSection}
-          </Link>
+          {/* Section & Breaking badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              to="/category/$slug"
+              params={{ slug: catSlug }}
+              className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors"
+            >
+              {localizedSection}
+            </Link>
+
+            {story.breaking && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-3 py-1 text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span>{t("breaking")}</span>
+              </span>
+            )}
+          </div>
 
           {/* Title */}
           <h1 className="mt-4 font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-tight text-foreground">

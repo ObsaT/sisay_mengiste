@@ -53,6 +53,48 @@ function SectionTitle({
   );
 }
 
+function BreakingNewsTickerItem({ article }: { article: Article }) {
+  const { language } = useLanguage();
+  const loc = getLocalizedArticleContent(article, language);
+  const [title, setTitle] = useState(loc.title || article.title);
+
+  useEffect(() => {
+    const localized = getLocalizedArticleContent(article, language);
+    if (localized.isTranslated || localized.sourceLang === language) {
+      setTitle(localized.title);
+      return;
+    }
+
+    let active = true;
+    translateText(article.title, localized.sourceLang, language)
+      .then((translated) => {
+        if (active && translated) {
+          setTitle(translated);
+        }
+      })
+      .catch((err) => {
+        console.warn("Breaking news ticker translation error:", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [article, language]);
+
+  const slug = article.slug || articleSlug(article.title);
+
+  return (
+    <Link
+      to="/article/$slug"
+      params={{ slug }}
+      className="headline-link flex items-center gap-2 hover:text-primary transition-colors"
+    >
+      <span className="text-primary text-[10px]">◆</span>
+      <span>{title}</span>
+    </Link>
+  );
+}
+
 function Home() {
   const { t, language, categories, getCategoryLabel } = useLanguage();
   const [featured, setFeatured] = useState<Article | null>(null);
@@ -124,7 +166,6 @@ function Home() {
   const grid = allPublished
     .filter((a) => a.id !== featured?.id && !side.find((s) => s.id === a.id))
     .slice(0, 6);
-  const breakingTexts = breakingNews.map((a) => a.title);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary">
@@ -137,7 +178,7 @@ function Home() {
       <SiteHeader />
 
       {/* ── Modern Breaking News Ticker ─────────────────────── */}
-      {breakingTexts.length > 0 && (
+      {breakingNews.length > 0 && (
         <div className="relative border-b border-border/80 bg-muted/40 backdrop-blur-sm">
           <div className="mx-auto flex max-w-7xl items-center px-4 py-2 text-xs">
             {/* Pulsing live badge */}
@@ -149,19 +190,14 @@ function Home() {
               <span className="text-[11px] font-black">{t("breaking")}</span>
             </div>
 
-            {/* Smooth Marquee */}
+            {/* Smooth Marquee with dynamic translated items */}
             <div className="relative flex-1 overflow-hidden">
               <div className="animate-ticker flex w-max gap-10 whitespace-nowrap text-xs font-medium text-foreground/80 hover:[animation-play-state:paused]">
-                {[...breakingTexts, ...breakingTexts].map((title, i) => (
-                  <Link
-                    key={i}
-                    to="/article/$slug"
-                    params={{ slug: articleSlug(title) }}
-                    className="headline-link flex items-center gap-2 hover:text-primary transition-colors"
-                  >
-                    <span className="text-primary text-[10px]">◆</span>
-                    <span>{title}</span>
-                  </Link>
+                {(breakingNews.length === 1
+                  ? [...breakingNews, ...breakingNews, ...breakingNews, ...breakingNews]
+                  : [...breakingNews, ...breakingNews]
+                ).map((article, i) => (
+                  <BreakingNewsTickerItem key={`${article.id}-${i}`} article={article} />
                 ))}
               </div>
             </div>

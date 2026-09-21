@@ -61,10 +61,19 @@ export async function translateText(
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return text;
-  if (fromLang === toLang) return text;
+  // Resolve source language with script verification
+  let source = fromLang === "auto" ? detectLanguage(trimmed) : fromLang;
 
-  // Resolve "auto" source
-  const source = fromLang === "auto" ? detectLanguage(trimmed) : fromLang;
+  // Guard against mismatched metadata:
+  // If metadata claims "am" but text has no Ge'ez script, re-detect
+  if (source === "am" && !/[\u1200-\u137F]/.test(trimmed)) {
+    source = detectLanguage(trimmed);
+  }
+  // If metadata claims "om" or "en" but text contains Ge'ez script, it's Amharic
+  if ((source === "om" || source === "en") && /[\u1200-\u137F]/.test(trimmed)) {
+    source = "am";
+  }
+
   if (source === toLang) return text;
 
   const cacheKey = getCacheKey(trimmed, source, toLang);
