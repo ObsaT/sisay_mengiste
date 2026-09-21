@@ -14,6 +14,8 @@ import { useLanguage } from "@/contexts/language-context";
 import { translateArticleBundle } from "@/lib/translation-service";
 import { TipTapEditor } from "@/components/tiptap-editor";
 import { ImageUpload } from "@/components/image-upload";
+import { BroadcastModal } from "@/components/broadcast-modal";
+import { fetchSubscribers, type Subscriber } from "@/lib/subscribers-service";
 import {
   Save,
   ArrowLeft,
@@ -29,6 +31,7 @@ import {
   Languages,
   Check,
   Trash2,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,6 +79,21 @@ function ArticleEditor() {
   );
   const [translatingTo, setTranslatingTo] = useState<Language | null>(null);
   const [activeTranslationTab, setActiveTranslationTab] = useState<Language | null>(null);
+
+  // Broadcast to subscribers state
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+
+  const handleOpenBroadcast = async () => {
+    try {
+      const subs = await fetchSubscribers();
+      setSubscribers(subs);
+      setBroadcastOpen(true);
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not load subscribers.");
+    }
+  };
 
   useEffect(() => {
     if (!isNew) {
@@ -309,6 +327,18 @@ function ArticleEditor() {
             <Eye className="h-3.5 w-3.5" />
             {saving ? "Saving..." : t("adminPublishLive")}
           </button>
+
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handleOpenBroadcast}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-colors shadow-xs"
+              title="Broadcast this news story to newsletter subscribers"
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span>Send to Subscribers</span>
+            </button>
+          )}
 
           {!isNew && (
             <a
@@ -768,6 +798,23 @@ function ArticleEditor() {
           </div>
         </form>
       )}
+
+      {/* Newsletter Broadcast Modal */}
+      <BroadcastModal
+        open={broadcastOpen}
+        onClose={() => setBroadcastOpen(false)}
+        article={{
+          id,
+          title,
+          excerpt,
+          slug,
+          image,
+          section,
+          author,
+          readTime: estimateReadTime(content),
+        }}
+        subscribers={subscribers}
+      />
     </div>
   );
 }

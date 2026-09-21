@@ -8,6 +8,8 @@ import {
   exportSubscribersToCsv,
   type Subscriber,
 } from "@/lib/subscribers-service";
+import { getArticles, type Article } from "@/lib/firestore-service";
+import { BroadcastModal } from "@/components/broadcast-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Users,
@@ -23,6 +25,7 @@ import {
   CheckCircle2,
   Loader2,
   Sparkles,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,11 +50,19 @@ export function AdminSubscribersPage() {
   // Delete dialog state
   const [deleteTarget, setDeleteTarget] = useState<Subscriber | null>(null);
 
+  // Broadcast newsletter state
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
     try {
       const data = await fetchSubscribers();
       setSubscribers(data);
+      const articleList = await getArticles();
+      setArticles(articleList.filter((a) => a.published));
     } catch (err) {
       console.error("Error loading subscribers:", err);
       toast.error("Could not load subscribers.");
@@ -145,6 +156,17 @@ export function AdminSubscribersPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            disabled={subscribers.length === 0 || articles.length === 0}
+            className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors shadow-xs disabled:opacity-50"
+            title="Send an article directly to all subscribers"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span>Broadcast News</span>
+          </button>
+
           <button
             type="button"
             onClick={() => exportSubscribersToCsv(filteredSubscribers)}
@@ -418,6 +440,87 @@ export function AdminSubscribersPage() {
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* Select Article to Broadcast Modal */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in backdrop-blur-xs">
+          <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Select Story to Broadcast</h3>
+                <p className="text-xs text-muted-foreground">
+                  Choose which news article to send to your subscribers
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 divide-y divide-border">
+              {articles.length === 0 ? (
+                <p className="text-center py-8 text-xs text-muted-foreground">
+                  No published articles found.
+                </p>
+              ) : (
+                articles.map((art) => (
+                  <div
+                    key={art.id}
+                    onClick={() => {
+                      setSelectedArticle(art);
+                      setPickerOpen(false);
+                      setBroadcastOpen(true);
+                    }}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted cursor-pointer transition-colors pt-3"
+                  >
+                    {art.image && (
+                      <img
+                        src={art.image}
+                        alt={art.title}
+                        className="h-12 w-16 rounded-lg object-cover shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground line-clamp-2 leading-snug">
+                        {art.title}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span className="font-semibold text-primary">{art.section}</span>
+                        <span>·</span>
+                        <span>{art.author}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-border p-3 text-right">
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="rounded-lg border border-border px-3.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Modal */}
+      {selectedArticle && (
+        <BroadcastModal
+          open={broadcastOpen}
+          onClose={() => setBroadcastOpen(false)}
+          article={selectedArticle}
+          subscribers={subscribers}
+        />
+      )}
     </div>
   );
 }
