@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
   query,
   orderBy,
   limit,
@@ -45,6 +46,8 @@ export interface Article {
   readTime?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  videoUrl?: string;
+  youtubeVideoId?: string;
 }
 
 export type ArticleInput = Omit<Article, "id" | "createdAt" | "updatedAt">;
@@ -172,6 +175,8 @@ function toArticle(d: DocumentSnapshot): Article {
     >;
   }
   if (raw["tags"]) article.tags = raw["tags"] as string[];
+  if (raw["videoUrl"]) article.videoUrl = raw["videoUrl"] as string;
+  if (raw["youtubeVideoId"]) article.youtubeVideoId = raw["youtubeVideoId"] as string;
   if (raw["createdAt"]) article.createdAt = raw["createdAt"] as Timestamp;
   if (raw["updatedAt"]) article.updatedAt = raw["updatedAt"] as Timestamp;
   return article;
@@ -295,6 +300,27 @@ export async function updateArticle(id: string, data: Partial<ArticleInput>): Pr
 export async function deleteArticle(id: string): Promise<void> {
   invalidateCache();
   await deleteDoc(doc(db, ARTICLES_COLLECTION, id));
+}
+
+/**
+ * Permanently delete multiple or all articles in batches (up to 450 per batch).
+ */
+export async function deleteAllArticles(ids?: string[]): Promise<number> {
+  invalidateCache();
+  const allIds = ids && ids.length > 0 ? ids : (await fetchAllArticles()).map((a) => a.id);
+  if (allIds.length === 0) return 0;
+
+  const chunkSize = 450;
+  for (let i = 0; i < allIds.length; i += chunkSize) {
+    const chunk = allIds.slice(i, i + chunkSize);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => {
+      batch.delete(doc(db, ARTICLES_COLLECTION, id));
+    });
+    await batch.commit();
+  }
+  invalidateCache();
+  return allIds.length;
 }
 
 export async function incrementViewCount(id: string): Promise<void> {

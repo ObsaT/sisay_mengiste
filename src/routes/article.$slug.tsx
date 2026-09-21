@@ -15,6 +15,7 @@ import {
   type Article,
 } from "@/lib/firestore-service";
 import { translateArticleBundle } from "@/lib/translation-service";
+import { extractYouTubeVideoId, getYouTubeEmbedUrl } from "@/lib/youtube-service";
 import { AdBanner } from "@/components/ad-banner";
 import { SEO } from "@/components/seo";
 import {
@@ -495,8 +496,20 @@ function ArticlePage() {
             )}
           </div>
 
-          {/* Featured Image */}
-          {story.image ? (
+          {/* Featured Media: YouTube Video Player or Image */}
+          {(story.youtubeVideoId || story.videoUrl) ? (
+            <div className="mt-6 aspect-video w-full overflow-hidden rounded-2xl border border-border shadow-xl bg-black">
+              <iframe
+                src={getYouTubeEmbedUrl(
+                  story.youtubeVideoId || extractYouTubeVideoId(story.videoUrl || "") || "",
+                )}
+                title={displayedTitle}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="h-full w-full border-0"
+              />
+            </div>
+          ) : story.image ? (
             <figure className="mt-6 overflow-hidden rounded-2xl border border-border shadow-lg">
               <img
                 src={story.image}

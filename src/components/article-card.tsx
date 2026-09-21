@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { Clock } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 import {
   articleSlug,
   timeAgo,
@@ -22,6 +22,7 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
   const catSlug = SECTION_TO_SLUG[article.section] ?? "news";
   const slug = articleSlug(article.title);
   const localizedSection = getCategoryLabel(catSlug) || article.section;
+  const isVideo = Boolean(article.youtubeVideoId || article.videoUrl || article.section === "ቪዲዮ");
 
   // Resolve best localized title and excerpt
   const initial = getLocalizedArticleContent(article, language);
@@ -78,7 +79,7 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
           <Link
             to="/article/$slug"
             params={{ slug }}
-            className="shrink-0 overflow-hidden rounded-lg"
+            className="relative shrink-0 overflow-hidden rounded-lg"
           >
             <img
               src={article.image}
@@ -86,6 +87,13 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
               loading="lazy"
               className="h-16 w-20 object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {isVideo && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/10 transition-colors">
+                <div className="rounded-full bg-red-600/90 p-1 text-white shadow-xs">
+                  <Play className="h-2.5 w-2.5 fill-white" />
+                </div>
+              </div>
+            )}
           </Link>
         )}
         <div className="min-w-0 flex-1">
@@ -129,7 +137,7 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
           <Link
             to="/article/$slug"
             params={{ slug }}
-            className="shrink-0 overflow-hidden rounded-xl"
+            className="relative shrink-0 overflow-hidden rounded-xl"
           >
             <img
               src={article.image}
@@ -137,6 +145,13 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
               loading="lazy"
               className="h-28 w-32 sm:h-32 sm:w-36 object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {isVideo && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/10 transition-colors">
+                <div className="rounded-full bg-red-600/90 p-2 text-white shadow-md transition-transform group-hover:scale-110">
+                  <Play className="h-3.5 w-3.5 fill-white" />
+                </div>
+              </div>
+            )}
           </Link>
         ) : null}
         <div className="min-w-0 flex-1 flex flex-col justify-center">
@@ -195,13 +210,20 @@ export function ArticleCard({ article, variant = "default", className = "" }: Ar
       className={`group flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:shadow-xl hover:border-primary/40 ${className}`}
     >
       {article.image ? (
-        <Link to="/article/$slug" params={{ slug }} className="overflow-hidden rounded-xl">
+        <Link to="/article/$slug" params={{ slug }} className="relative overflow-hidden rounded-xl">
           <img
             src={article.image}
             alt={title}
             loading="lazy"
             className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
+          {isVideo && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/10 transition-colors">
+              <div className="rounded-full bg-red-600/90 p-3 text-white shadow-lg transition-transform group-hover:scale-110">
+                <Play className="h-5 w-5 fill-white" />
+              </div>
+            </div>
+          )}
         </Link>
       ) : (
         <div className="aspect-[16/10] rounded-xl bg-muted/40" />

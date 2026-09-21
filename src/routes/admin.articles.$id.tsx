@@ -15,7 +15,9 @@ import { translateArticleBundle } from "@/lib/translation-service";
 import { TipTapEditor } from "@/components/tiptap-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { BroadcastModal } from "@/components/broadcast-modal";
+import { YouTubeModal } from "@/components/youtube-modal";
 import { fetchSubscribers, type Subscriber } from "@/lib/subscribers-service";
+import { getYouTubeEmbedUrl, type YouTubeVideoItem } from "@/lib/youtube-service";
 import {
   Save,
   ArrowLeft,
@@ -32,6 +34,8 @@ import {
   Check,
   Trash2,
   Send,
+  Video,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,6 +77,11 @@ function ArticleEditor() {
   const [loading, setLoading] = useState(!isNew);
   const [preview, setPreview] = useState(false);
 
+  // YouTube Video Article state
+  const [videoUrl, setVideoUrl] = useState("");
+  const [youtubeVideoId, setYoutubeVideoId] = useState("");
+  const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
+
   // Multilingual translations state
   const [translations, setTranslations] = useState<Partial<Record<Language, ArticleTranslation>>>(
     {},
@@ -95,6 +104,27 @@ function ArticleEditor() {
     }
   };
 
+  const handleSelectYouTubeVideo = (video: YouTubeVideoItem) => {
+    setYoutubeVideoId(video.id);
+    setVideoUrl(video.videoUrl);
+
+    // Auto-fill title if current title is empty
+    if (!title.trim()) {
+      setTitle(video.title);
+    }
+
+    // Auto-fill image with YouTube thumbnail if empty
+    if (!image.trim()) {
+      setImage(video.thumbnailUrl);
+    }
+
+    // Auto-select "ቪዲዮ" section if available
+    const videoSec = SECTIONS.find((s) => s.value === "ቪዲዮ" || s.label.toLowerCase().includes("video"));
+    if (videoSec) {
+      setSection(videoSec.value);
+    }
+  };
+
   useEffect(() => {
     if (!isNew) {
       getArticle(id)
@@ -113,6 +143,8 @@ function ArticleEditor() {
             setBreaking(article.breaking);
             setMostRead(article.mostRead);
             setOpinion(article.opinion);
+            if (article.videoUrl) setVideoUrl(article.videoUrl);
+            if (article.youtubeVideoId) setYoutubeVideoId(article.youtubeVideoId);
             if (article.translations) {
               setTranslations(article.translations);
             }
@@ -214,6 +246,8 @@ function ArticleEditor() {
         .filter(Boolean),
       readTime: estimateReadTime(content),
       viewCount: 0,
+      videoUrl: videoUrl.trim() || undefined,
+      youtubeVideoId: youtubeVideoId.trim() || undefined,
     };
 
     try {
@@ -442,6 +476,85 @@ function ArticleEditor() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* ── YouTube Video Article Integration ──────────────── */}
+          <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600/10 text-red-600 border border-red-600/20 font-bold">
+                  <Video className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <span>YouTube Video Article</span>
+                    {youtubeVideoId && (
+                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                        Linked
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {youtubeVideoId
+                      ? "This article embeds a responsive YouTube video player."
+                      : "Choose from your YouTube video list or paste a link to turn this into a video article."}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setYoutubeModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-red-600/30 bg-red-600/10 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-600/20 transition-all cursor-pointer shrink-0"
+              >
+                <Video className="h-3.5 w-3.5" />
+                <span>{youtubeVideoId ? "Change Video" : "🎬 Choose from YouTube Video List"}</span>
+              </button>
+            </div>
+
+            {/* Active Video Preview Player */}
+            {youtubeVideoId && (
+              <div className="mt-3 rounded-xl border border-border bg-neutral-950/40 p-3.5 space-y-3">
+                <div className="aspect-video w-full overflow-hidden rounded-lg bg-black border border-border/60">
+                  <iframe
+                    src={getYouTubeEmbedUrl(youtubeVideoId)}
+                    title="YouTube Video Preview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-full w-full border-0"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-[11px] text-muted-foreground">ID: {youtubeVideoId}</span>
+                    {videoUrl && (
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1 truncate"
+                      >
+                        <span>View on YouTube</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setYoutubeVideoId("");
+                      setVideoUrl("");
+                      toast.info("Video link removed.");
+                    }}
+                    className="text-xs font-semibold text-destructive hover:underline cursor-pointer"
+                  >
+                    Remove Video
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cover Image */}
@@ -814,6 +927,14 @@ function ArticleEditor() {
           readTime: estimateReadTime(content),
         }}
         subscribers={subscribers}
+      />
+
+      {/* YouTube Video Selection Modal */}
+      <YouTubeModal
+        open={youtubeModalOpen}
+        onOpenChange={setYoutubeModalOpen}
+        onSelectVideo={handleSelectYouTubeVideo}
+        currentVideoId={youtubeVideoId}
       />
     </div>
   );
