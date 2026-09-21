@@ -1218,7 +1218,8 @@ function AdsSettingsTab() {
           const adsList = getSlotAds(slot);
           const activeAdsList = getActiveAds(slot);
           const isPreviewOpen = activePreview === def.id;
-          const rotationStrategy = slot.rotationStrategy || "random";
+          const rotationStrategy = slot.rotationStrategy || "carousel";
+          const rotationInterval = slot.rotationIntervalSeconds || 6;
 
           return (
             <div
@@ -1291,38 +1292,59 @@ function AdsSettingsTab() {
               {/* Slot Settings & Sub-header Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/30 px-4 py-2.5 sm:px-5 border-b border-border/60">
                 {/* Rotation Strategy selection */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Rotation Mode:
                   </span>
                   <div className="flex items-center gap-1 bg-background rounded-xl p-0.5 border border-border">
                     <button
                       type="button"
-                      onClick={() => handleUpdateSlotRotation(def.id, "random")}
-                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
-                        rotationStrategy === "random"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="Randomly picks one active ad on each page load"
-                    >
-                      <Shuffle className="h-3 w-3" />
-                      <span>Random per View</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSlotRotation(def.id, "carousel")}
+                      onClick={() => handleUpdateSlotRotation(def.id, "carousel", rotationInterval)}
                       className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
                         rotationStrategy === "carousel"
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
-                      title="Automatically cycles between active ads every 8 seconds"
+                      title="Automatically cycles between active ads smoothly"
                     >
                       <Repeat className="h-3 w-3" />
-                      <span>Timed Carousel (8s)</span>
+                      <span>Auto Carousel ({rotationInterval}s)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSlotRotation(def.id, "random", rotationInterval)}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rotationStrategy === "random"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Cycles with random ad order on each interval / view"
+                    >
+                      <Shuffle className="h-3 w-3" />
+                      <span>Random per View</span>
                     </button>
                   </div>
+
+                  {/* Interval Duration Switcher */}
+                  {rotationStrategy === "carousel" && (
+                    <div className="flex items-center gap-1 bg-background rounded-xl p-0.5 border border-border text-[10px] font-bold">
+                      <span className="px-1.5 text-muted-foreground">Speed:</span>
+                      {[4, 6, 10].map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => handleUpdateSlotRotation(def.id, "carousel", sec)}
+                          className={`rounded px-1.5 py-0.5 transition-all ${
+                            rotationInterval === sec
+                              ? "bg-primary/20 text-primary font-black"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Add Campaign Button */}
@@ -1765,7 +1787,7 @@ function AdsSettingsTab() {
                       </div>
                       <div className="bg-background rounded-xl border border-border/60 p-2">
                         {/* Real live AdBanner component with multi-ad rotation */}
-                        <AdBanner variant={def.id} />
+                        <AdBanner variant={def.id} customSlot={slot} />
                       </div>
                     </div>
                   )}
