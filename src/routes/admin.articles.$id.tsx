@@ -418,9 +418,6 @@ function ArticleEditor() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Cover Image
-              <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                Cloudinary Storage
-              </span>
             </label>
             <ImageUpload value={image} onChange={setImage} />
           </div>
