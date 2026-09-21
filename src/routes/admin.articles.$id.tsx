@@ -60,7 +60,7 @@ function ArticleEditor() {
   const [image, setImage] = useState("");
   const [tags, setTags] = useState("");
   const [featured, setFeatured] = useState(false);
-  const [published, setPublished] = useState(false);
+  const [published, setPublished] = useState(true); // Default to PUBLISHED live!
   const [breaking, setBreaking] = useState(false);
   const [mostRead, setMostRead] = useState(false);
   const [opinion, setOpinion] = useState(false);
@@ -89,7 +89,7 @@ function ArticleEditor() {
             setImage(article.image);
             setTags((article.tags ?? []).join(", "));
             setFeatured(article.featured);
-            setPublished(article.published);
+            setPublished(article.published !== false); // load actual status
             setBreaking(article.breaking);
             setMostRead(article.mostRead);
             setOpinion(article.opinion);
@@ -148,8 +148,7 @@ function ArticleEditor() {
     toast.success("Translation removed.");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveWithStatus = async (publishStatus: boolean) => {
     if (!title.trim()) {
       toast.error("Title is required.");
       return;
@@ -164,7 +163,15 @@ function ArticleEditor() {
     }
 
     setSaving(true);
-    const toastId = toast.loading(isNew ? "Creating article..." : "Saving changes...");
+    const toastId = toast.loading(
+      publishStatus
+        ? isNew
+          ? "Publishing article live..."
+          : "Updating and publishing live..."
+        : isNew
+        ? "Saving draft..."
+        : "Saving changes as draft...",
+    );
 
     const data: ArticleInput = {
       title: title.trim(),
@@ -177,7 +184,7 @@ function ArticleEditor() {
       content,
       image,
       featured,
-      published,
+      published: publishStatus,
       breaking,
       mostRead,
       opinion,
@@ -192,11 +199,23 @@ function ArticleEditor() {
     try {
       if (isNew) {
         const newId = await createArticle(data);
-        toast.success("Article created!", { id: toastId });
+        setPublished(publishStatus);
+        toast.success(
+          publishStatus
+            ? "Article published! It is now live on the website."
+            : "Article saved as draft (hidden from public).",
+          { id: toastId },
+        );
         navigate({ to: "/admin/articles/$id", params: { id: newId } });
       } else {
         await updateArticle(id, data);
-        toast.success("Article updated!", { id: toastId });
+        setPublished(publishStatus);
+        toast.success(
+          publishStatus
+            ? "Article updated and live on website!"
+            : "Article saved as draft (hidden from public).",
+          { id: toastId },
+        );
       }
     } catch (err) {
       console.error(err);
@@ -204,6 +223,11 @@ function ArticleEditor() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void handleSaveWithStatus(published);
   };
 
   if (loading) {
@@ -238,23 +262,59 @@ function ArticleEditor() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Status Badge Toggle */}
+          <button
+            type="button"
+            onClick={() => setPublished(!published)}
+            title="Click to toggle between Published and Draft"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all border cursor-pointer ${
+              published
+                ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 hover:bg-green-500/25"
+                : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25"
+            }`}
+          >
+            {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            <span>{published ? "Published (Live)" : "Draft (Hidden)"}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setPreview((v) => !v)}
-            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
-            {preview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {preview ? "Edit" : "Preview"}
           </button>
+
+          <button
+            type="button"
+            onClick={() => handleSaveWithStatus(false)}
+            disabled={saving}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            Save Draft
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSaveWithStatus(true)}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            {saving ? "Saving..." : "Publish Live"}
+          </button>
+
           {!isNew && (
             <a
               href={`/sisay_mengiste/article/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className="h-3.5 w-3.5" />
               View
             </a>
           )}
@@ -557,96 +617,154 @@ function ArticleEditor() {
           </div>
 
           {/* Status & Placement Toggles */}
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Status
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  checked={published}
-                  onChange={(e) => setPublished(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                {published ? (
-                  <Eye className="h-4 w-4 text-green-500" />
-                ) : (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                )}
-                {published ? "Published" : "Draft"}
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  checked={featured}
-                  onChange={(e) => setFeatured(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <Star
-                  className={`h-4 w-4 ${featured ? "text-yellow-500" : "text-muted-foreground"}`}
-                />
-                Featured Hero
-              </label>
+          <div className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Publication Status <span className="text-destructive">*</span>
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setPublished(true)}
+                  className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                    published
+                      ? "border-green-500 bg-green-500/10 text-foreground ring-2 ring-green-500/30"
+                      : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <Eye
+                    className={`h-5 w-5 mt-0.5 shrink-0 ${
+                      published ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+                    }`}
+                  />
+                  <div>
+                    <span className="font-bold text-sm block text-foreground">
+                      Publish Immediately (Live)
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Visible to all readers across the homepage, category pages, and search.
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPublished(false)}
+                  className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                    !published
+                      ? "border-amber-500 bg-amber-500/10 text-foreground ring-2 ring-amber-500/30"
+                      : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <EyeOff
+                    className={`h-5 w-5 mt-0.5 shrink-0 ${
+                      !published ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                    }`}
+                  />
+                  <div>
+                    <span className="font-bold text-sm block text-foreground">Save as Draft</span>
+                    <span className="text-xs text-muted-foreground">
+                      Hidden from readers; only visible and editable by admins.
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
 
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">
-              Placement
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  checked={breaking}
-                  onChange={(e) => setBreaking(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <Zap className={`h-4 w-4 ${breaking ? "text-red-500" : "text-muted-foreground"}`} />
-                Breaking ticker
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  checked={mostRead}
-                  onChange={(e) => setMostRead(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <TrendingUp
-                  className={`h-4 w-4 ${mostRead ? "text-blue-500" : "text-muted-foreground"}`}
-                />
-                Most Read
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  checked={opinion}
-                  onChange={(e) => setOpinion(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <MessageSquare
-                  className={`h-4 w-4 ${opinion ? "text-purple-500" : "text-muted-foreground"}`}
-                />
-                Opinion / Editorial
-              </label>
+            <div className="border-t border-border pt-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Special Placements & Features
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 flex-wrap">
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={featured}
+                    onChange={(e) => setFeatured(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Star
+                    className={`h-4 w-4 ${featured ? "text-yellow-500" : "text-muted-foreground"}`}
+                  />
+                  <span>Featured Hero Headline</span>
+                </label>
+
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={breaking}
+                    onChange={(e) => setBreaking(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Zap className={`h-4 w-4 ${breaking ? "text-red-500" : "text-muted-foreground"}`} />
+                  <span>Breaking News Ticker</span>
+                </label>
+
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={mostRead}
+                    onChange={(e) => setMostRead(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <TrendingUp
+                    className={`h-4 w-4 ${mostRead ? "text-blue-500" : "text-muted-foreground"}`}
+                  />
+                  <span>Most Read Column</span>
+                </label>
+
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={opinion}
+                    onChange={(e) => setOpinion(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <MessageSquare
+                    className={`h-4 w-4 ${opinion ? "text-purple-500" : "text-muted-foreground"}`}
+                  />
+                  <span>Opinion / Editorial</span>
+                </label>
+              </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 border-t border-border pt-6">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "Saving..." : isNew ? "Create Article" : "Update Article"}
-            </button>
+          <div className="flex items-center justify-between gap-3 border-t border-border pt-6 flex-wrap">
             <Link
               to="/admin/articles/"
-              className="rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               Cancel
             </Link>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleSaveWithStatus(false)}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-xs transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                <span>{saving ? "Saving..." : "Save as Draft"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSaveWithStatus(true)}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-green-700 disabled:opacity-50 cursor-pointer"
+              >
+                <Eye className="h-4 w-4" />
+                <span>
+                  {saving
+                    ? "Publishing..."
+                    : isNew
+                    ? "Publish Article (Live)"
+                    : "Update & Publish Live"}
+                </span>
+              </button>
+            </div>
           </div>
         </form>
       )}

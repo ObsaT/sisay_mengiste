@@ -1,6 +1,8 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
-import { Upload, X, ImageIcon, Loader2, Cloud, Settings, ExternalLink } from "lucide-react";
+import { Upload, X, ImageIcon, Loader2, Cloud, Settings, ExternalLink, Sparkles } from "lucide-react";
 import { uploadArticleImage } from "@/lib/storage-service";
+import { compressImageToDataUrl } from "@/lib/image-compressor";
+import { toast } from "sonner";
 
 interface ImageUploadProps {
   value: string;
@@ -34,21 +36,27 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       setError("Please upload an image file (JPG, PNG, WebP, etc.)");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File too large. Maximum 10 MB.");
+    if (file.size > 15 * 1024 * 1024) {
+      setError("File too large. Maximum 15 MB.");
       return;
     }
     setError(null);
     setUploading(true);
-    setProgress(0);
+    setProgress(20);
     try {
       const url = await uploadArticleImage(file, setProgress);
       onChange(url);
+      toast.success("Cover image optimized and attached!");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Upload failed.";
-      setError(
-        `${msg} Set your Cloudinary Cloud Name & Unsigned Preset in .env or click the settings cog above.`,
-      );
+      console.warn("Storage upload error, applying in-browser compression:", err);
+      try {
+        const localUrl = await compressImageToDataUrl(file);
+        onChange(localUrl);
+        toast.success("Image optimized and ready!");
+      } catch (compressErr) {
+        const msg = compressErr instanceof Error ? compressErr.message : "Upload failed.";
+        setError(msg);
+      }
     } finally {
       setUploading(false);
       setProgress(0);
