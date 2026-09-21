@@ -9,9 +9,6 @@ import {
   PlusCircle,
   LogOut,
   Newspaper,
-  Share2,
-  Mail,
-  Cloud,
   Settings,
   Globe,
   Check,
@@ -162,9 +159,6 @@ function AdminLayout() {
     { to: "/admin" as const, label: t("adminNavDashboard"), icon: LayoutDashboard, exact: true },
     { to: "/admin/articles/" as const, label: t("adminNavArticles"), icon: FileText },
     { to: "/admin/settings" as const, label: t("adminNavSettings"), icon: Settings },
-    { to: "/admin/social" as const, label: t("adminNavSocial"), icon: Share2 },
-    { to: "/admin/contact" as const, label: t("adminNavContact"), icon: Mail },
-    { to: "/admin/cloudinary" as const, label: t("adminNavCloudinary"), icon: Cloud },
   ];
 
   return (
@@ -212,14 +206,6 @@ function AdminLayout() {
         </div>
 
         <div className="border-t border-border p-4 space-y-3">
-          <div className="rounded-lg bg-muted/40 p-2.5">
-            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Globe className="h-3 w-3 text-primary" />
-              {t("adminLanguagePreference")}
-            </div>
-            <AdminLanguageSelect />
-          </div>
-
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 truncate">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
