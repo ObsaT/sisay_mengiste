@@ -27,6 +27,7 @@ import {
   articleSlug,
   type Article,
 } from "@/lib/firestore-service";
+import logoImg from "@/assets/logo.jpg";
 
 /* ── Live clock & date by language ──────────────────────────────── */
 
@@ -337,18 +338,25 @@ function MobileMenu({
         }`}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <Link
-              to="/"
-              onClick={onClose}
-              className="font-display text-xl font-bold text-foreground"
-            >
-              {t("siteName")}
-            </Link>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              {t("siteSubtitle")}
-            </p>
-          </div>
+          <Link
+            to="/"
+            onClick={onClose}
+            className="flex items-center gap-2.5 group"
+          >
+            <img
+              src={logoImg}
+              alt="የራስ - YERAS Media Network"
+              className="h-10 w-auto object-contain bg-white rounded-md p-0.5 shadow-sm"
+            />
+            <div>
+              <span className="font-display text-lg font-bold text-foreground block group-hover:text-primary transition-colors">
+                {t("siteName")}
+              </span>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {t("siteSubtitle")}
+              </p>
+            </div>
+          </Link>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -594,18 +602,25 @@ export function SiteHeader() {
             </button>
 
             {/* Publication Logo / Brand */}
-            <Link to="/" className="flex-1 text-center group">
-              <div className="inline-block">
+            <Link to="/" className="flex-1 flex items-center justify-center gap-3 sm:gap-4 group py-0.5">
+              <img
+                src={logoImg}
+                alt="የራስ - YERAS Media Network"
+                className={`w-auto object-contain rounded-lg bg-white p-1 shadow-sm transition-all duration-300 ${
+                  scrolled ? "h-10 sm:h-12" : "h-14 sm:h-20"
+                }`}
+              />
+              <div className="text-left">
                 <span
                   className={`block font-display font-black tracking-tight text-foreground group-hover:text-primary transition-all duration-300 ${
-                    scrolled ? "text-xl sm:text-2xl" : "text-3xl sm:text-5xl"
+                    scrolled ? "text-lg sm:text-2xl" : "text-2xl sm:text-4xl lg:text-5xl"
                   }`}
                 >
                   {t("siteName")}
                 </span>
                 <span
-                  className={`kicker mt-0.5 block text-muted-foreground text-xs sm:text-sm tracking-[0.25em] transition-all duration-300 ${
-                    scrolled ? "hidden" : "block"
+                  className={`kicker mt-0.5 block text-muted-foreground text-[10px] sm:text-xs md:text-sm tracking-[0.15em] sm:tracking-[0.25em] transition-all duration-300 ${
+                    scrolled ? "hidden sm:block" : "block"
                   }`}
                 >
                   {t("siteSubtitle")}

@@ -6,6 +6,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { useContact } from "@/contexts/contact-context";
 import { subscribeEmail } from "@/lib/subscribers-service";
 import { Send, Mail, Phone, MapPin, ExternalLink } from "lucide-react";
+import logoImg from "@/assets/logo.jpg";
 
 export function SiteFooter() {
   const { t, categories, language } = useLanguage();
@@ -46,6 +47,11 @@ export function SiteFooter() {
           {/* Brand & Mission */}
           <div className="lg:col-span-1">
             <Link to="/" className="group block">
+              <img
+                src={logoImg}
+                alt="የራስ - YERAS Media Network"
+                className="h-14 sm:h-16 w-auto object-contain bg-white rounded-lg p-1.5 shadow-sm mb-3"
+              />
               <p className="font-display text-2xl sm:text-3xl font-black text-ink-foreground group-hover:text-gold transition-colors">
                 {t("siteName")}
               </p>

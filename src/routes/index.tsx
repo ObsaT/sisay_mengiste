@@ -171,8 +171,8 @@ function Home() {
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary">
       {/* ── Dynamic SEO & Schema.org ────────────────────────── */}
       <SEO
-        title="ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ"
-        description="የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ፣ ኦሮምኛና እንግሊዝኛ እትም።"
+        title="የራስ | YERAS Media Network — ዜና፣ ፖለቲካ፣ ቢዝነስ"
+        description="የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከየራስ ሚዲያ ኔትወርክ (YERAS Media Network) አማርኛ፣ ኦሮምኛና እንግሊዝኛ እትም። የላቀ ሃሳብ፤ የላቀ ተግባር!"
       />
 
       <SiteHeader />

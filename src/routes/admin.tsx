@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Users,
 } from "lucide-react";
+import logoImg from "@/assets/logo.jpg";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -168,10 +169,16 @@ function AdminLayout() {
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:flex lg:flex-col justify-between">
         <div>
-          <div className="flex h-16 items-center justify-between border-b border-border px-5">
-            <Link to="/admin" className="flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-primary" />
-              <span className="font-display text-lg font-bold text-foreground">Admin</span>
+          <div className="flex h-16 items-center justify-between border-b border-border px-4">
+            <Link to="/admin" className="flex items-center gap-2 group">
+              <img
+                src={logoImg}
+                alt="የራስ"
+                className="h-8 w-auto object-contain bg-white rounded p-0.5 shadow-xs"
+              />
+              <span className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                የራስ Admin
+              </span>
             </Link>
             <AdminLanguageSelect compact />
           </div>
@@ -241,8 +248,12 @@ function AdminLayout() {
       <div className="flex flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
           <Link to="/admin" className="flex items-center gap-2">
-            <Newspaper className="h-5 w-5 text-primary" />
-            <span className="font-display text-lg font-bold">Admin</span>
+            <img
+              src={logoImg}
+              alt="የራስ"
+              className="h-7 w-auto object-contain bg-white rounded p-0.5 shadow-xs"
+            />
+            <span className="font-display text-sm font-bold">የራስ Admin</span>
           </Link>
           <div className="flex items-center gap-1.5">
             <AdminLanguageSelect compact />

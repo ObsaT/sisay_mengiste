@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
+import logoImg from "@/assets/logo.jpg";
 
 export const Route = createFileRoute("/admin/login")({
   component: AdminLogin,
@@ -54,10 +55,17 @@ function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Branding */}
         <div className="mb-8 text-center">
-          <Link to="/" className="font-display text-3xl font-extrabold text-foreground">
-            ሲሳይ መንግስቴ
+          <Link to="/" className="inline-flex flex-col items-center group">
+            <img
+              src={logoImg}
+              alt="የራስ - YERAS Media Network"
+              className="h-16 w-auto object-contain bg-white rounded-xl p-1.5 shadow-sm mb-2"
+            />
+            <span className="font-display text-2xl font-extrabold text-foreground group-hover:text-primary transition-colors">
+              የራስ · YERAS
+            </span>
           </Link>
-          <p className="mt-2 text-sm text-muted-foreground">Admin Dashboard</p>
+          <p className="mt-1 text-sm text-muted-foreground">Admin Portal & Dashboard</p>
         </div>
 
         {/* Login card */}

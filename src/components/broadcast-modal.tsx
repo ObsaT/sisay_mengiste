@@ -26,7 +26,7 @@ interface BroadcastModalProps {
 
 export function BroadcastModal({ open, onClose, article, subscribers }: BroadcastModalProps) {
   const [langFilter, setLangFilter] = useState("all");
-  const [subject, setSubject] = useState(`📰 [Sisay Mengiste News] ${article.title}`);
+  const [subject, setSubject] = useState(`📰 [YERAS Media Network] ${article.title}`);
   const [copiedEmails, setCopiedEmails] = useState(false);
   const [activeTab, setActiveTab] = useState<"preview" | "settings">("preview");
   const [queueing, setQueueing] = useState(false);
@@ -200,7 +200,7 @@ export function BroadcastModal({ open, onClose, article, subscribers }: Broadcas
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
               {/* Fake Email Client Header */}
               <div className="border-b border-border bg-muted/40 px-4 py-2.5 text-[11px] text-muted-foreground flex items-center justify-between">
-                <span>From: <strong className="text-foreground">Sisay Mengiste News</strong> &lt;newsletter@sisaymengiste.com&gt;</span>
+                <span>From: <strong className="text-foreground">YERAS Media Network</strong> &lt;newsletter@yerasmedia.com&gt;</span>
                 <span className="font-mono text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">BCC: {emailList.length} emails</span>
               </div>
 

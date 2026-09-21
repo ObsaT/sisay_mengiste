@@ -48,8 +48,8 @@ export function generateEmailHtml(article: ArticleForNewsletter, siteUrl?: strin
 <body>
   <div class="container">
     <div class="header">
-      <h1>Sisay Mengiste</h1>
-      <p>ሲሳይ መንግስቴ · Daily Morning Briefing</p>
+      <h1>የራስ · YERAS</h1>
+      <p>የራስ ሚዲያ ኔትወርክ (YERAS Media Network) · Daily Morning Briefing</p>
     </div>
     ${article.image ? `<img src="${article.image}" alt="${article.title}" class="cover-image" />` : ""}
     <div class="content">
@@ -66,8 +66,8 @@ export function generateEmailHtml(article: ArticleForNewsletter, siteUrl?: strin
       </div>
     </div>
     <div class="footer">
-      <p>You received this because you subscribed to updates at <a href="${base}">Sisay Mengiste News</a>.</p>
-      <p>© ${new Date().getFullYear()} Sisay Mengiste. All rights reserved.</p>
+      <p>You received this because you subscribed to updates at <a href="${base}">YERAS Media Network</a>.</p>
+      <p>© ${new Date().getFullYear()} YERAS Media Network. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -83,7 +83,7 @@ export function generateEmailText(article: ArticleForNewsletter, siteUrl?: strin
   const articleUrl = article.slug ? `${base}/sisay_mengiste/article/${article.slug}` : base;
 
   return `
-[Sisay Mengiste News - Daily Briefing]
+[YERAS Media Network - Daily Briefing]
 
 ${article.title.toUpperCase()}
 By: ${article.author || "Editorial Desk"} (${article.section || "News"})
@@ -95,7 +95,7 @@ ${articleUrl}
 
 ---
 You received this because you subscribed to updates at ${base}
-© ${new Date().getFullYear()} Sisay Mengiste
+© ${new Date().getFullYear()} YERAS Media Network
   `.trim();
 }
 

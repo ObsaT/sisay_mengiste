@@ -368,7 +368,7 @@ export function AdBanner({
                         ? "እዚህ ጋር ማስታወቂያዎን ያስተዋውቁ — ከ500,000+ በላይ አንባቢዎች ጋር ይገናኙ"
                         : language === "om"
                         ? "Beeksisa keessan asirratti beeksisaa — Dubbistoota 500,000+ bira ga'aa"
-                        : "Advertise with Sisay Mengiste Media — Reach 500,000+ Engaged Readers")}
+                        : "Advertise with YERAS Media Network — Reach 500,000+ Engaged Readers")}
                     </h4>
                     {effectiveDescription ? (
                       <p className="text-xs text-muted-foreground line-clamp-1">
@@ -481,10 +481,10 @@ export function AdBanner({
                 <div className="p-4 space-y-2">
                   <h4 className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                     {effectiveTitle || (language === "am"
-                      ? "ንግድዎን በሲሳይ መንግስቴ ድረ-ገጽ ላይ ያሳድጉ"
+                      ? "ንግድዎን በየራስ ሚዲያ ኔትወርክ ላይ ያሳድጉ"
                       : language === "om"
-                      ? "Daldala keessan marsariitii Siisaay Mangistee irratti beeksisaa"
-                      : "Grow Your Brand with Sisay Mengiste Media")}
+                      ? "Daldala keessan Midiyaa YERAS irratti beeksisaa"
+                      : "Grow Your Brand with YERAS Media Network")}
                   </h4>
                   {effectiveDescription && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
@@ -506,10 +506,10 @@ export function AdBanner({
                 </span>
                 <h4 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                   {effectiveTitle || (language === "am"
-                    ? "ንግድዎን በሲሳይ መንግስቴ ድረ-ገጽ ላይ ያሳድጉ"
+                    ? "ንግድዎን በየራስ ሚዲያ ኔትወርክ ላይ ያሳድጉ"
                     : language === "om"
-                    ? "Daldala keessan marsariitii Siisaay Mangistee irratti beeksisaa"
-                    : "Grow Your Brand with Sisay Mengiste Media")}
+                    ? "Daldala keessan Midiyaa YERAS irratti beeksisaa"
+                    : "Grow Your Brand with YERAS Media Network")}
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {effectiveDescription || (language === "am"

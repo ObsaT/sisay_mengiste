@@ -20,10 +20,10 @@ interface SEOProps {
   canonicalUrl?: string | undefined;
 }
 
-const DEFAULT_TITLE = "ሲሳይ መንግስቴ | Sisay Mengiste — ዜና፣ ፖለቲካ፣ ቢዝነስ";
+const DEFAULT_TITLE = "የራስ | YERAS Media Network — ዜና፣ ፖለቲካ፣ ቢዝነስ";
 const DEFAULT_DESCRIPTION =
-  "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከሲሳይ መንግስቴ አማርኛ፣ ኦሮምኛና እንግሊዝኛ እትም። Independent news from Ethiopia.";
-const DEFAULT_IMAGE = "https://obsat.github.io/sisay_mengiste/og-image.jpg";
+  "የዕለቱ ዋና ዜናዎች፣ ፖለቲካ፣ ቢዝነስ፣ ማኅበራዊና ስፖርት ዘገባዎች — ከየራስ ሚዲያ ኔትወርክ (YERAS Media Network) አማርኛ፣ ኦሮምኛና እንግሊዝኛ እትም። የላቀ ሃሳብ፤ የላቀ ተግባር!";
+const DEFAULT_IMAGE = "https://obsat.github.io/sisay_mengiste/logo.jpg";
 const SITE_URL = "https://obsat.github.io/sisay_mengiste";
 
 export function SEO({
@@ -39,9 +39,9 @@ export function SEO({
 
   useEffect(() => {
     // 1. Page Title
-    const formattedTitle = title.includes("ሲሳይ መንግስቴ") || title.includes("Sisay Mengiste")
+    const formattedTitle = title.includes("የራስ") || title.includes("YERAS")
       ? title
-      : `${title} | ሲሳይ መንግስቴ — Sisay Mengiste`;
+      : `${title} | የራስ — YERAS Media Network`;
     document.title = formattedTitle;
 
     // Helper to update or create a meta tag
@@ -65,16 +65,16 @@ export function SEO({
     setMetaTag(
       'meta[name="keywords"]',
       "content",
-      "Ethiopia news, ዜና, ፖለቲካ, ቢዝነስ, Oduu, Siyaasa, Ethiopian Reporter, Addis Ababa, Sisay Mengiste",
+      "Ethiopia news, ዜና, ፖለቲካ, ቢዝነስ, Oduu, Siyaasa, የራስ, YERAS, YERAS Media Network, Addis Ababa, Ethiopia breaking news",
     );
-    setMetaTag('meta[name="author"]', "content", article?.authorName || "Sisay Mengiste Media");
+    setMetaTag('meta[name="author"]', "content", article?.authorName || "የራስ ሚዲያ ኔትወርክ | YERAS Media Network");
 
     // 3. OpenGraph Tags
     setMetaTag('meta[property="og:title"]', "content", formattedTitle);
     setMetaTag('meta[property="og:description"]', "content", description);
     setMetaTag('meta[property="og:image"]', "content", image);
     setMetaTag('meta[property="og:type"]', "content", type);
-    setMetaTag('meta[property="og:site_name"]', "content", "ሲሳይ መንግስቴ | Sisay Mengiste");
+    setMetaTag('meta[property="og:site_name"]', "content", "የራስ | YERAS Media Network");
     setMetaTag(
       'meta[property="og:locale"]',
       "content",
@@ -123,16 +123,16 @@ export function SEO({
         author: [
           {
             "@type": "Person",
-            name: article.authorName || "Sisay Mengiste",
+            name: article.authorName || "የራስ ሚዲያ",
           },
         ],
         publisher: {
           "@type": "NewsMediaOrganization",
-          name: "ሲሳይ መንግስቴ | Sisay Mengiste Media",
+          name: "የራስ ሚዲያ ኔትወርክ | YERAS Media Network",
           url: SITE_URL,
           logo: {
             "@type": "ImageObject",
-            url: `${SITE_URL}/favicon.ico`,
+            url: `${SITE_URL}/logo.jpg`,
           },
         },
         mainEntityOfPage: {
@@ -148,10 +148,10 @@ export function SEO({
       const orgSchema = {
         "@context": "https://schema.org",
         "@type": "NewsMediaOrganization",
-        name: "ሲሳይ መንግስቴ | Sisay Mengiste",
-        alternateName: "Sisay Mengiste News",
+        name: "የራስ | YERAS Media Network",
+        alternateName: "YERAS Media Network",
         url: SITE_URL,
-        logo: `${SITE_URL}/favicon.ico`,
+        logo: `${SITE_URL}/logo.jpg`,
         description: description,
         sameAs:
           activeLinks && activeLinks.length > 0
