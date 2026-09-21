@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/language-context";
 import { useSocialLinks } from "@/contexts/social-context";
 import { useContact } from "@/contexts/contact-context";
+import { useAds } from "@/contexts/ads-context";
 import { type SocialLinkItem } from "@/lib/social-links";
 import { type ContactSettings, DEFAULT_CONTACT_SETTINGS } from "@/lib/contact-settings";
 import {
@@ -12,6 +13,12 @@ import {
   type CloudinarySettings,
   DEFAULT_CLOUDINARY_SETTINGS,
 } from "@/lib/cloudinary-settings";
+import {
+  type AdsSettings,
+  type AdSlotConfig,
+  DEFAULT_ADS_SETTINGS,
+} from "@/lib/ads-settings";
+import { uploadToCloudinary } from "@/lib/cloudinary-service";
 import { SocialIcon } from "@/components/social-icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
@@ -36,10 +43,16 @@ import {
   Sparkles,
   Info,
   Globe,
+  Megaphone,
+  Upload,
+  Image as ImageIcon,
+  Check,
+  X,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type SettingsTab = "cloudinary" | "social" | "contact";
+type SettingsTab = "cloudinary" | "social" | "contact" | "ads";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettingsPage,
@@ -65,7 +78,7 @@ function AdminSettingsPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "social" || hash === "contact" || hash === "cloudinary") {
+      if (hash === "social" || hash === "contact" || hash === "cloudinary" || hash === "ads") {
         setActiveTab(hash as SettingsTab);
       }
     }
@@ -84,7 +97,7 @@ function AdminSettingsPage() {
               {t("adminNavSettings")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Configure image storage, social media channels, and public contact information.
+              Configure image storage, social media channels, contact details, and advertising banners.
             </p>
           </div>
         </div>
@@ -129,6 +142,19 @@ function AdminSettingsPage() {
             <Mail className="h-4 w-4" />
             <span>Contact Information</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("ads")}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all border ${
+              activeTab === "ads"
+                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Megaphone className="h-4 w-4" />
+            <span>Advertisements</span>
+          </button>
         </div>
       </div>
 
@@ -136,6 +162,7 @@ function AdminSettingsPage() {
       {activeTab === "cloudinary" && <CloudinarySettingsTab />}
       {activeTab === "social" && <SocialSettingsTab />}
       {activeTab === "contact" && <ContactSettingsTab />}
+      {activeTab === "ads" && <AdsSettingsTab />}
     </div>
   );
 }
@@ -851,6 +878,540 @@ function ContactSettingsTab() {
         onOpenChange={setResetDialogOpen}
         title="Reset Contact Info?"
         description="This will restore default email (otemesgen@gmail.com) and office location."
+        confirmLabel="Reset to Defaults"
+        onConfirm={handleConfirmReset}
+      />
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   TAB 4: ADVERTISEMENTS SETTINGS
+═════════════════════════════════════════════════════════════════ */
+const AD_SLOT_DEFINITIONS: Array<{
+  id: "leaderboard" | "sidebar" | "in-article" | "billboard";
+  title: string;
+  badge: string;
+  location: string;
+  recommendedSize: string;
+  aspectDesc: string;
+}> = [
+  {
+    id: "leaderboard",
+    title: "Top Leaderboard Banner",
+    badge: "Top Billboard",
+    location: "Appears across the top of Homepage & Category Pages",
+    recommendedSize: "728 × 90 px (or responsive banner 1200 × 200)",
+    aspectDesc: "Horizontal wide banner",
+  },
+  {
+    id: "sidebar",
+    title: "Sidebar Medium Rectangle",
+    badge: "Sidebar Box",
+    location: "Appears on Homepage sidebar and article reading sidebars",
+    recommendedSize: "300 × 250 px (or 336 × 280)",
+    aspectDesc: "Standard rectangular box",
+  },
+  {
+    id: "in-article",
+    title: "In-Article Interstitial Banner",
+    badge: "Inline Article",
+    location: "Appears inline between story paragraphs in every article",
+    recommendedSize: "600 × 200 px (or responsive)",
+    aspectDesc: "Fluid inline card banner",
+  },
+  {
+    id: "billboard",
+    title: "Bottom Billboard Banner",
+    badge: "Footer Spotlight",
+    location: "High-impact wide banner displayed right above the footer",
+    recommendedSize: "970 × 250 px (or 1200 × 300)",
+    aspectDesc: "Full-width spotlight billboard",
+  },
+];
+
+function AdsSettingsTab() {
+  const { ads, saveAds } = useAds();
+  const [formData, setFormData] = useState<AdsSettings>(ads);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [activePreview, setActivePreview] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  useEffect(() => {
+    setFormData(ads);
+    setHasChanges(false);
+  }, [ads]);
+
+  const handleSlotFieldChange = (
+    slotId: "leaderboard" | "sidebar" | "in-article" | "billboard",
+    field: keyof AdSlotConfig,
+    value: any
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      slots: {
+        ...prev.slots,
+        [slotId]: {
+          ...(prev.slots[slotId] || DEFAULT_ADS_SETTINGS.slots[slotId]),
+          [field]: value,
+        },
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    const toastId = toast.loading("Saving advertisement placements...");
+    try {
+      await saveAds(formData);
+      setHasChanges(false);
+      toast.success("Advertisement settings saved successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to save advertisement settings.", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmReset = async () => {
+    setFormData(DEFAULT_ADS_SETTINGS);
+    setHasChanges(true);
+    setResetDialogOpen(false);
+    toast.info("Reset to default ad configurations. Click 'Save Changes' to apply.");
+  };
+
+  const handleImageFileSelected = async (
+    slotId: "leaderboard" | "sidebar" | "in-article" | "billboard",
+    file: File
+  ) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose a valid image file (JPG, PNG, WebP, GIF).");
+      return;
+    }
+    setUploadingSlot(slotId);
+    setUploadProgress(0);
+    const toastId = toast.loading(`Uploading image for ${slotId}...`);
+    try {
+      const url = await uploadToCloudinary(file, (pct) => setUploadProgress(pct));
+      handleSlotFieldChange(slotId, "imageUrl", url);
+      toast.success("Banner image uploaded successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to upload image. Please check Cloudinary settings.", { id: toastId });
+    } finally {
+      setUploadingSlot(null);
+      setUploadProgress(0);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner & Save Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 shadow-xs">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Megaphone className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-foreground">
+              Advertisement Placements & Sponsorships
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Manage client banner ads across 4 strategic placement zones. Real-time updates sync directly to the live site.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setResetDialogOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Reset</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSave()}
+            disabled={saving || !hasChanges}
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-xs transition-all ${
+              hasChanges
+                ? "bg-primary hover:bg-primary/90 cursor-pointer"
+                : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+            }`}
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>{saving ? "Saving..." : "Save All Changes"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Info helper */}
+      <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+        <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="text-xs text-muted-foreground leading-relaxed">
+          <strong className="text-foreground font-semibold">How it works: </strong>
+          Each slot can either display a sponsor’s custom banner image or a branded editorial inquiry card. If an ad slot has an image, clicking it will take the reader to the destination URL. If no custom image or sponsor is provided, it automatically falls back to inviting advertisers to contact your email.
+        </div>
+      </div>
+
+      {/* ── 4 Ad Slots Grid / Cards ─────────────────────────────── */}
+      <div className="space-y-6">
+        {AD_SLOT_DEFINITIONS.map((def) => {
+          const slot = formData.slots[def.id] || DEFAULT_ADS_SETTINGS.slots[def.id];
+          const isEnabled = slot.enabled;
+          const isUploading = uploadingSlot === def.id;
+          const isPreviewOpen = activePreview === def.id;
+
+          return (
+            <div
+              key={def.id}
+              className={`rounded-2xl border transition-all ${
+                isEnabled
+                  ? "border-border bg-card shadow-xs"
+                  : "border-border/60 bg-muted/20 opacity-80"
+              }`}
+            >
+              {/* Card Top Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 p-4 sm:px-5">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl border font-bold text-xs ${
+                      isEnabled
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    <Layers className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground">{def.title}</h3>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {def.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{def.location}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-center">
+                  {/* Enable/Disable Toggle */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {isEnabled ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Active
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <X className="h-3 w-3" /> Disabled
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSlotFieldChange(def.id, "enabled", !isEnabled)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isEnabled ? "bg-primary" : "bg-muted-foreground/30"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          isEnabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-4 sm:p-5 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Sponsor Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Sponsor / Client Name
+                    </label>
+                    <input
+                      type="text"
+                      value={slot.sponsorName || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "sponsorName", e.target.value)}
+                      placeholder="e.g. Ethiopian Airlines, Safaricom, CBE"
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Displayed on the badge label above or inside the ad.
+                    </p>
+                  </div>
+
+                  {/* Headline / Title */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Ad Headline / Campaign Title
+                    </label>
+                    <input
+                      type="text"
+                      value={slot.title || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "title", e.target.value)}
+                      placeholder="e.g. Fly direct to 130+ destinations with award-winning comfort"
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Main title text or image fallback text.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Target URL & Open New Tab */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Destination Click Link (URL)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={slot.linkUrl || ""}
+                        onChange={(e) => handleSlotFieldChange(def.id, "linkUrl", e.target.value)}
+                        placeholder="https://example.com/promotion"
+                        disabled={!isEnabled}
+                        className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Where readers are redirected when clicking the ad (defaults to advertising inquiry email if blank).
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pb-2">
+                    <input
+                      type="checkbox"
+                      id={`newtab-${def.id}`}
+                      checked={slot.openInNewTab !== false}
+                      onChange={(e) => handleSlotFieldChange(def.id, "openInNewTab", e.target.checked)}
+                      disabled={!isEnabled}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <label
+                      htmlFor={`newtab-${def.id}`}
+                      className="text-xs font-medium text-foreground cursor-pointer select-none"
+                    >
+                      Open in new tab
+                    </label>
+                  </div>
+                </div>
+
+                {/* Banner Image URL & Cloudinary Upload */}
+                <div className="space-y-2 pt-1 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                      <span>Banner Image (Recommended: {def.recommendedSize})</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">{def.aspectDesc}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <input
+                      type="url"
+                      value={slot.imageUrl || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "imageUrl", e.target.value)}
+                      placeholder="https://res.cloudinary.com/... or paste image URL"
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+
+                    {/* Hidden file input for Cloudinary upload */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={(el) => {
+                        fileInputRefs.current[def.id] = el;
+                      }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageFileSelected(def.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRefs.current[def.id]?.click()}
+                      disabled={!isEnabled || isUploading}
+                      className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>{isUploading ? `Uploading ${uploadProgress}%` : "Upload Image"}</span>
+                    </button>
+
+                    {slot.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleSlotFieldChange(def.id, "imageUrl", "")}
+                        disabled={!isEnabled}
+                        className="rounded-xl border border-border p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                        title="Remove image"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Image Preview & Details */}
+                  {slot.imageUrl && (
+                    <div className="relative mt-2 rounded-xl border border-border overflow-hidden bg-neutral-900/50 p-2 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <img
+                          src={slot.imageUrl}
+                          alt="Banner preview"
+                          className="h-14 max-w-[180px] object-cover rounded-lg border border-border/60"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {slot.sponsorName || "Custom Banner"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {slot.imageUrl}
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={slot.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline shrink-0 pr-2"
+                      >
+                        <span>View original</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Preview Accordion Toggle */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setActivePreview(isPreviewOpen ? null : def.id)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>{isPreviewOpen ? "Hide Live Banner Preview" : "Show Live Banner Preview"}</span>
+                  </button>
+
+                  {isPreviewOpen && (
+                    <div className="mt-3 rounded-2xl border border-border/80 bg-neutral-950/20 p-4 sm:p-6 overflow-hidden">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Simulated Site Render
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          Slot ID: {def.id}
+                        </span>
+                      </div>
+                      <div className="bg-background rounded-xl border border-border/60 p-2">
+                        {/* Inline preview representation */}
+                        {slot.imageUrl ? (
+                          <div className="relative group overflow-hidden rounded-xl border border-border">
+                            <img
+                              src={slot.imageUrl}
+                              alt={slot.title || def.title}
+                              className={`w-full object-cover ${
+                                def.id === "leaderboard"
+                                  ? "h-20 sm:h-24"
+                                  : def.id === "sidebar"
+                                  ? "h-44 max-w-[320px] mx-auto"
+                                  : def.id === "in-article"
+                                  ? "h-28"
+                                  : "h-48 sm:h-64"
+                              }`}
+                            />
+                            {slot.title && (
+                              <div className="p-3 bg-card border-t border-border flex items-center justify-between">
+                                <div>
+                                  {slot.sponsorName && (
+                                    <span className="text-[10px] font-bold text-primary uppercase">
+                                      {slot.sponsorName}
+                                    </span>
+                                  )}
+                                  <p className="text-xs font-bold text-foreground">{slot.title}</p>
+                                </div>
+                                <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                  <span>Visit</span>
+                                  <ExternalLink className="h-2.5 w-2.5" />
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-4 sm:p-5 rounded-xl border border-border/80 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 text-white flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/20 text-gold border border-gold/30">
+                                <Sparkles className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gold">
+                                  {slot.sponsorName || "Sponsored Partner"}
+                                </span>
+                                <h4 className="text-sm font-bold text-white">
+                                  {slot.title || "Advertise with Sisay Mengiste Media — Reach 500,000+ Engaged Readers"}
+                                </h4>
+                              </div>
+                            </div>
+                            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shrink-0">
+                              Advertise
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Floating or bottom Save Button */}
+      {hasChanges && (
+        <div className="sticky bottom-6 z-20 flex items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-card p-4 shadow-lg ring-1 ring-primary/20 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>You have unsaved changes in your advertisement configuration.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleSave()}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow transition-transform hover:scale-105"
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>{saving ? "Saving..." : "Save All Changes"}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Reset Confirmation Dialog */}
+      <ConfirmDialog
+        open={resetDialogOpen}
+        onOpenChange={setResetDialogOpen}
+        title="Reset All Advertisements?"
+        description="This will restore default advertising slots and editorial inquiry placeholders. Any custom banner URLs and campaign headlines will be reset."
         confirmLabel="Reset to Defaults"
         onConfirm={handleConfirmReset}
       />

@@ -6,6 +6,7 @@ import { ThemeProvider } from "./contexts/theme-context";
 import { LanguageProvider } from "./contexts/language-context";
 import { SocialProvider } from "./contexts/social-context";
 import { ContactProvider } from "./contexts/contact-context";
+import { AdsProvider } from "./contexts/ads-context";
 import { Toaster } from "sonner";
 
 import "./styles.css";
@@ -21,15 +22,17 @@ createRoot(rootElement).render(
       <LanguageProvider>
         <SocialProvider>
           <ContactProvider>
-            <AuthProvider>
-              <RouterProvider router={router} />
-              <Toaster
-                position="bottom-right"
-                richColors
-                closeButton
-                toastOptions={{ duration: 4000 }}
-              />
-            </AuthProvider>
+            <AdsProvider>
+              <AuthProvider>
+                <RouterProvider router={router} />
+                <Toaster
+                  position="bottom-right"
+                  richColors
+                  closeButton
+                  toastOptions={{ duration: 4000 }}
+                />
+              </AuthProvider>
+            </AdsProvider>
           </ContactProvider>
         </SocialProvider>
       </LanguageProvider>
