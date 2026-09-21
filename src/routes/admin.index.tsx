@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getArticles, type Article } from "@/lib/firestore-service";
 import { seedFirestore } from "@/lib/seed-firestore";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useLanguage } from "@/contexts/language-context";
 import {
   FileText,
   Eye,
@@ -33,6 +34,7 @@ const CHART_COLORS = [
 ];
 
 function AdminDashboard() {
+  const { t } = useLanguage();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [seedOpen, setSeedOpen] = useState(false);
@@ -73,11 +75,11 @@ function AdminDashboard() {
   const breaking = articles.filter((a) => a.breaking).length;
 
   const stats = [
-    { label: "Total", value: articles.length, icon: FileText, color: "text-blue-500 bg-blue-50" },
-    { label: "Published", value: published, icon: Eye, color: "text-green-600 bg-green-50" },
-    { label: "Drafts", value: drafts, icon: Clock, color: "text-yellow-600 bg-yellow-50" },
-    { label: "Featured", value: featured, icon: TrendingUp, color: "text-purple-600 bg-purple-50" },
-    { label: "Breaking", value: breaking, icon: Zap, color: "text-red-600 bg-red-50" },
+    { label: t("adminTotalArticles"), value: articles.length, icon: FileText, color: "text-blue-500 bg-blue-50" },
+    { label: t("adminPublished"), value: published, icon: Eye, color: "text-green-600 bg-green-50" },
+    { label: t("adminDrafts"), value: drafts, icon: Clock, color: "text-yellow-600 bg-yellow-50" },
+    { label: t("adminFeatured"), value: featured, icon: TrendingUp, color: "text-purple-600 bg-purple-50" },
+    { label: t("adminBreaking"), value: breaking, icon: Zap, color: "text-red-600 bg-red-50" },
   ];
 
   // Articles by section chart data
@@ -95,9 +97,9 @@ function AdminDashboard() {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("adminDashboardTitle")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage your news articles and content.
+            {t("adminDashboardSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -107,7 +109,7 @@ function AdminDashboard() {
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             <Database className={`h-4 w-4 ${seeding ? "animate-pulse" : ""}`} />
-            Seed Demo Data
+            {t("adminSeedDemo")}
           </button>
           <a
             href="/sisay_mengiste/"
@@ -116,7 +118,7 @@ function AdminDashboard() {
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             <ExternalLink className="h-4 w-4" />
-            View Site
+            {t("adminViewSite")}
           </a>
           <Link
             to="/admin/articles/$id"
@@ -124,7 +126,7 @@ function AdminDashboard() {
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <PlusCircle className="h-4 w-4" />
-            New Article
+            {t("adminNavNewArticle")}
           </Link>
         </div>
       </div>
@@ -148,9 +150,9 @@ function AdminDashboard() {
         {/* Recent articles */}
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">Recent Articles</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("adminRecentArticles")}</h2>
             <Link to="/admin/articles" className="text-sm text-primary hover:underline">
-              View all
+              {t("viewAll")}
             </Link>
           </div>
 
@@ -162,13 +164,13 @@ function AdminDashboard() {
             <div className="py-12 text-center">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
               <p className="mt-3 text-sm text-muted-foreground">
-                No articles yet.{" "}
+                {t("adminNoArticlesFound")}{" "}
                 <Link
                   to="/admin/articles/$id"
                   params={{ id: "new" }}
                   className="text-primary hover:underline"
                 >
-                  Create your first article
+                  {t("adminCreateFirstArticle")}
                 </Link>
               </p>
             </div>
@@ -196,7 +198,7 @@ function AdminDashboard() {
                         : "bg-yellow-100 text-yellow-700"
                     }`}
                   >
-                    {article.published ? "Published" : "Draft"}
+                    {article.published ? t("adminPublished") : t("adminDrafts")}
                   </span>
                 </Link>
               ))}
@@ -208,14 +210,14 @@ function AdminDashboard() {
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
             <BarChart3 className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Articles by Section</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("adminArticlesBySection")}</h2>
           </div>
           {loading || chartData.length === 0 ? (
             <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
               {loading ? (
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               ) : (
-                "No data yet."
+                t("adminNoArticlesFound")
               )}
             </div>
           ) : (

@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getArticles, deleteArticle, updateArticle, type Article } from "@/lib/firestore-service";
 import { NAV } from "@/lib/news-data";
-import { PlusCircle, Pencil, Trash2, Search, Filter, Eye, EyeOff, Calendar } from "lucide-react";
+import { useLanguage } from "@/contexts/language-context";
+import { type Language } from "@/lib/i18n";
+import { PlusCircle, Pencil, Trash2, Search, Filter, Eye, EyeOff, Calendar, Globe } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 
@@ -11,10 +13,12 @@ export const Route = createFileRoute("/admin/articles/")({
 });
 
 function ArticlesList() {
+  const { t, language: adminLang } = useLanguage();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterSection, setFilterSection] = useState("all");
+  const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<Article | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -72,19 +76,46 @@ function ArticlesList() {
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.author.toLowerCase().includes(search.toLowerCase());
     const matchesSection = filterSection === "all" || a.section === filterSection;
-    return matchesSearch && matchesSection;
+    const matchesLanguage =
+      filterLanguage === "all" ||
+      (filterLanguage === "am" && (!a.language || a.language === "am")) ||
+      a.language === filterLanguage;
+    return matchesSearch && matchesSection && matchesLanguage;
   });
 
   const published = articles.filter((a) => a.published).length;
   const drafts = articles.filter((a) => !a.published).length;
 
+  const getLanguageBadge = (lang?: Language) => {
+    if (lang === "om") {
+      return (
+        <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+          🌳 Oromoo
+        </span>
+      );
+    }
+    if (lang === "en") {
+      return (
+        <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-800">
+          🌐 English
+        </span>
+      );
+    }
+    return (
+      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+        🇪🇹 አማርኛ
+      </span>
+    );
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Articles</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("adminNavArticles")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {articles.length} total · {published} published · {drafts} drafts
+            {articles.length} {t("adminTotalArticles").toLowerCase()} · {published}{" "}
+            {t("adminPublished").toLowerCase()} · {drafts} {t("adminDrafts").toLowerCase()}
           </p>
         </div>
         <Link
@@ -93,7 +124,7 @@ function ArticlesList() {
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <PlusCircle className="h-4 w-4" />
-          New Article
+          {t("adminNavNewArticle")}
         </Link>
       </div>
 
@@ -103,12 +134,14 @@ function ArticlesList() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by title or author..."
+            placeholder={t("adminSearchArticles")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
+
+        {/* Section Filter */}
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <select
@@ -116,12 +149,27 @@ function ArticlesList() {
             onChange={(e) => setFilterSection(e.target.value)}
             className="rounded-lg border border-border bg-card py-2.5 pl-10 pr-8 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
-            <option value="all">All Sections</option>
+            <option value="all">{t("adminAllSections")}</option>
             {sections.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
+          </select>
+        </div>
+
+        {/* Language Filter */}
+        <div className="relative">
+          <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <select
+            value={filterLanguage}
+            onChange={(e) => setFilterLanguage(e.target.value)}
+            className="rounded-lg border border-border bg-card py-2.5 pl-10 pr-8 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="all">{t("adminAllLanguages")}</option>
+            <option value="am">🇪🇹 አማርኛ (Amharic)</option>
+            <option value="om">🌳 Afaan Oromoo</option>
+            <option value="en">🌐 English</option>
           </select>
         </div>
       </div>
@@ -136,17 +184,17 @@ function ArticlesList() {
           <div className="py-16 text-center text-sm text-muted-foreground">
             {articles.length === 0 ? (
               <>
-                No articles yet.{" "}
+                {t("adminNoArticlesFound")}{" "}
                 <Link
                   to="/admin/articles/$id"
                   params={{ id: "new" }}
                   className="text-primary hover:underline"
                 >
-                  Create your first article
+                  {t("adminCreateFirstArticle")}
                 </Link>
               </>
             ) : (
-              "No articles match your filters."
+              t("adminNoArticlesFound")
             )}
           </div>
         ) : (
@@ -154,19 +202,22 @@ function ArticlesList() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 font-semibold text-foreground">Title</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">{t("adminTableTitle")}</th>
                   <th className="hidden px-4 py-3 font-semibold text-foreground md:table-cell">
-                    Section
+                    {t("adminTableSection")}
                   </th>
                   <th className="hidden px-4 py-3 font-semibold text-foreground lg:table-cell">
-                    Author
+                    {t("adminTableLanguage")}
+                  </th>
+                  <th className="hidden px-4 py-3 font-semibold text-foreground lg:table-cell">
+                    {t("adminTableAuthor")}
                   </th>
                   <th className="hidden px-4 py-3 font-semibold text-foreground lg:table-cell">
                     <Calendar className="inline h-3.5 w-3.5 mr-1" />
-                    Date
+                    {t("adminTableDate")}
                   </th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Status</th>
-                  <th className="px-4 py-3 text-right font-semibold text-foreground">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">{t("adminTableStatus")}</th>
+                  <th className="px-4 py-3 text-right font-semibold text-foreground">{t("adminTableActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -176,7 +227,7 @@ function ArticlesList() {
                       <p className="truncate font-medium text-foreground">{article.title}</p>
                       {article.featured && (
                         <span className="mt-0.5 inline-block rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
-                          Featured
+                          {t("adminFeatured")}
                         </span>
                       )}
                     </td>
@@ -184,15 +235,21 @@ function ArticlesList() {
                       {article.section}
                     </td>
                     <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+                      {getLanguageBadge(article.language)}
+                    </td>
+                    <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                       {article.author}
                     </td>
                     <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
                       {article.createdAt
-                        ? article.createdAt.toDate().toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })
+                        ? article.createdAt.toDate().toLocaleDateString(
+                            adminLang === "am" ? "am-ET" : adminLang === "om" ? "en-ET" : "en-GB",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -201,7 +258,7 @@ function ArticlesList() {
                         onClick={() => handleTogglePublish(article)}
                         disabled={togglingId === article.id}
                         title={article.published ? "Click to unpublish" : "Click to publish"}
-                        className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                           article.published
                             ? "bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700"
                             : "bg-yellow-100 text-yellow-700 hover:bg-green-100 hover:text-green-700"
@@ -214,7 +271,7 @@ function ArticlesList() {
                         ) : (
                           <EyeOff className="h-3 w-3" />
                         )}
-                        {article.published ? "Published" : "Draft"}
+                        {article.published ? t("adminPublished") : t("adminDrafts")}
                       </button>
                     </td>
                     <td className="px-4 py-3">

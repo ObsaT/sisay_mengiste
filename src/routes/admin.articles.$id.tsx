@@ -10,6 +10,7 @@ import {
   type ArticleTranslation,
 } from "@/lib/firestore-service";
 import { NAV_CATEGORIES, type Language } from "@/lib/i18n";
+import { useLanguage } from "@/contexts/language-context";
 import { translateArticleBundle } from "@/lib/translation-service";
 import { TipTapEditor } from "@/components/tiptap-editor";
 import { ImageUpload } from "@/components/image-upload";
@@ -50,6 +51,7 @@ function ArticleEditor() {
   const { id } = Route.useParams();
   const isNew = id === "new";
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState(SECTIONS[0]?.value ?? "ዜና");
@@ -248,12 +250,13 @@ function ArticleEditor() {
         <Link
           to="/admin/articles/"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-border transition-colors hover:bg-muted"
+          title={t("adminBackToArticles")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">
-            {isNew ? "New Article" : "Edit Article"}
+            {isNew ? t("adminNavNewArticle") : t("adminEditMode")}
           </h1>
           {title && (
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -275,7 +278,7 @@ function ArticleEditor() {
             }`}
           >
             {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            <span>{published ? "Published (Live)" : "Draft (Hidden)"}</span>
+            <span>{published ? t("adminStatusPublished") : t("adminStatusDraft")}</span>
           </button>
 
           <button
@@ -284,7 +287,7 @@ function ArticleEditor() {
             className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
             {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {preview ? "Edit" : "Preview"}
+            {preview ? t("adminEditMode") : t("adminPreview")}
           </button>
 
           <button
@@ -294,7 +297,7 @@ function ArticleEditor() {
             className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted transition-colors disabled:opacity-50"
           >
             <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-            Save Draft
+            {t("adminSaveDraft")}
           </button>
 
           <button
@@ -304,7 +307,7 @@ function ArticleEditor() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             <Eye className="h-3.5 w-3.5" />
-            {saving ? "Saving..." : "Publish Live"}
+            {saving ? "Saving..." : t("adminPublishLive")}
           </button>
 
           {!isNew && (
@@ -315,7 +318,7 @@ function ArticleEditor() {
               className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              View
+              {t("views")}
             </a>
           )}
         </div>
@@ -735,7 +738,7 @@ function ArticleEditor() {
               to="/admin/articles/"
               className="rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              Cancel
+              {t("backHome")}
             </Link>
 
             <div className="flex items-center gap-3">
@@ -746,7 +749,7 @@ function ArticleEditor() {
                 className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-xs transition-colors hover:bg-muted disabled:opacity-50"
               >
                 <EyeOff className="h-4 w-4 text-muted-foreground" />
-                <span>{saving ? "Saving..." : "Save as Draft"}</span>
+                <span>{saving ? "Saving..." : t("adminSaveDraft")}</span>
               </button>
 
               <button
@@ -760,8 +763,8 @@ function ArticleEditor() {
                   {saving
                     ? "Publishing..."
                     : isNew
-                    ? "Publish Article (Live)"
-                    : "Update & Publish Live"}
+                    ? t("adminPublishLive")
+                    : `${t("adminEditMode")} & ${t("adminPublishLive")}`}
                 </span>
               </button>
             </div>
