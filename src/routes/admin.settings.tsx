@@ -21,6 +21,7 @@ import {
 import { uploadToCloudinary } from "@/lib/cloudinary-service";
 import { SocialIcon } from "@/components/social-icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { AdBanner } from "@/components/ad-banner";
 import {
   Settings,
   Cloud,
@@ -1169,29 +1170,102 @@ function AdsSettingsTab() {
                       className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                     />
                     <p className="text-[10px] text-muted-foreground">
-                      Main title text or image fallback text.
+                      Prominent headline displayed in the native ad card.
                     </p>
                   </div>
                 </div>
 
-                {/* Target URL & Open New Tab */}
+                {/* Description & CTA text */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Campaign Tagline / Description */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Campaign Tagline / Description
+                    </label>
+                    <input
+                      type="text"
+                      value={slot.description || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "description", e.target.value)}
+                      placeholder="e.g. Book now to receive 20% discount on flights across Africa and Europe."
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Short supporting message that gives readers context about the offer.
+                    </p>
+                  </div>
+
+                  {/* CTA Button Text */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Action Button Text
+                    </label>
+                    <input
+                      type="text"
+                      value={slot.ctaText || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "ctaText", e.target.value)}
+                      placeholder="e.g. Visit Sponsor, Learn More, Book Now, Shop Now"
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Text displayed on the call-to-action button (defaults to "Visit Sponsor").
+                    </p>
+                  </div>
+                </div>
+
+                {/* Target URL, Display Format & Open New Tab */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                  <div className="md:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5">
                     <label className="text-xs font-bold text-foreground">
                       Destination Click Link (URL)
                     </label>
-                    <div className="relative">
-                      <input
-                        type="url"
-                        value={slot.linkUrl || ""}
-                        onChange={(e) => handleSlotFieldChange(def.id, "linkUrl", e.target.value)}
-                        placeholder="https://example.com/promotion"
+                    <input
+                      type="url"
+                      value={slot.linkUrl || ""}
+                      onChange={(e) => handleSlotFieldChange(def.id, "linkUrl", e.target.value)}
+                      placeholder="https://example.com/promotion"
+                      disabled={!isEnabled}
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Where readers are redirected when clicking the ad.
+                    </p>
+                  </div>
+
+                  {/* Display Format selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground">
+                      Display Format
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSlotFieldChange(def.id, "displayStyle", "card")}
                         disabled={!isEnabled}
-                        className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs sm:text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                      />
+                        className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
+                          (slot.displayStyle || "card") === "card"
+                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Native Card
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSlotFieldChange(def.id, "displayStyle", "banner")}
+                        disabled={!isEnabled}
+                        className={`flex-1 rounded-lg px-2.5 py-2 text-[11px] font-bold border transition-all ${
+                          slot.displayStyle === "banner"
+                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                            : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Full Banner
+                      </button>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Where readers are redirected when clicking the ad (defaults to advertising inquiry email if blank).
+                      Native Card (image + text + CTA) vs Full Banner graphic.
                     </p>
                   </div>
 
@@ -1208,7 +1282,7 @@ function AdsSettingsTab() {
                       htmlFor={`newtab-${def.id}`}
                       className="text-xs font-medium text-foreground cursor-pointer select-none"
                     >
-                      Open in new tab
+                      Open link in new tab
                     </label>
                   </div>
                 </div>
@@ -1317,66 +1391,24 @@ function AdsSettingsTab() {
                     <div className="mt-3 rounded-2xl border border-border/80 bg-neutral-950/20 p-4 sm:p-6 overflow-hidden">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Simulated Site Render
+                          Simulated Site Render (Live Component)
                         </span>
                         <span className="text-[10px] text-muted-foreground font-mono">
                           Slot ID: {def.id}
                         </span>
                       </div>
                       <div className="bg-background rounded-xl border border-border/60 p-2">
-                        {/* Inline preview representation */}
-                        {slot.imageUrl ? (
-                          <div className="relative group overflow-hidden rounded-xl border border-border">
-                            <img
-                              src={slot.imageUrl}
-                              alt={slot.title || def.title}
-                              className={`w-full object-cover ${
-                                def.id === "leaderboard"
-                                  ? "h-20 sm:h-24"
-                                  : def.id === "sidebar"
-                                  ? "h-44 max-w-[320px] mx-auto"
-                                  : def.id === "in-article"
-                                  ? "h-28"
-                                  : "h-48 sm:h-64"
-                              }`}
-                            />
-                            {slot.title && (
-                              <div className="p-3 bg-card border-t border-border flex items-center justify-between">
-                                <div>
-                                  {slot.sponsorName && (
-                                    <span className="text-[10px] font-bold text-primary uppercase">
-                                      {slot.sponsorName}
-                                    </span>
-                                  )}
-                                  <p className="text-xs font-bold text-foreground">{slot.title}</p>
-                                </div>
-                                <span className="text-[10px] font-bold text-primary flex items-center gap-1">
-                                  <span>Visit</span>
-                                  <ExternalLink className="h-2.5 w-2.5" />
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-4 sm:p-5 rounded-xl border border-border/80 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 text-white flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/20 text-gold border border-gold/30">
-                                <Sparkles className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gold">
-                                  {slot.sponsorName || "Sponsored Partner"}
-                                </span>
-                                <h4 className="text-sm font-bold text-white">
-                                  {slot.title || "Advertise with Sisay Mengiste Media — Reach 500,000+ Engaged Readers"}
-                                </h4>
-                              </div>
-                            </div>
-                            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shrink-0">
-                              Advertise
-                            </span>
-                          </div>
-                        )}
+                        {/* Real live AdBanner component */}
+                        <AdBanner
+                          variant={def.id}
+                          imageUrl={slot.imageUrl}
+                          linkUrl={slot.linkUrl}
+                          title={slot.title}
+                          sponsorName={slot.sponsorName}
+                          description={slot.description}
+                          ctaText={slot.ctaText}
+                          displayStyle={slot.displayStyle}
+                        />
                       </div>
                     </div>
                   )}

@@ -9,6 +9,9 @@ export interface AdSlotConfig {
   linkUrl: string;
   sponsorName: string;
   title: string;
+  description?: string;
+  ctaText?: string;
+  displayStyle?: "card" | "banner";
   openInNewTab: boolean;
   recommendedSize: string;
 }
@@ -29,6 +32,9 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       linkUrl: "",
       sponsorName: "",
       title: "",
+      description: "",
+      ctaText: "Visit Sponsor",
+      displayStyle: "card",
       openInNewTab: true,
       recommendedSize: "728 × 90 px (or responsive banner)",
     },
@@ -40,6 +46,9 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       linkUrl: "",
       sponsorName: "",
       title: "",
+      description: "",
+      ctaText: "Learn More",
+      displayStyle: "card",
       openInNewTab: true,
       recommendedSize: "300 × 250 px",
     },
@@ -51,6 +60,9 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       linkUrl: "",
       sponsorName: "",
       title: "",
+      description: "",
+      ctaText: "Explore More",
+      displayStyle: "card",
       openInNewTab: true,
       recommendedSize: "600 × 200 px (or responsive banner)",
     },
@@ -62,6 +74,9 @@ export const DEFAULT_ADS_SETTINGS: AdsSettings = {
       linkUrl: "",
       sponsorName: "",
       title: "",
+      description: "",
+      ctaText: "Visit Sponsor",
+      displayStyle: "card",
       openInNewTab: true,
       recommendedSize: "970 × 250 px (or wide banner)",
     },
