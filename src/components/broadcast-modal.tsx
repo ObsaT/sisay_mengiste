@@ -1,5 +1,15 @@
 import { useState, useMemo } from "react";
-import { type ArticleForNewsletter, generateEmailHtml, generateEmailText, buildMailtoUrl, queueFirebaseMail, logNewsletterBroadcast } from "@/lib/newsletter-service";
+import {
+  type ArticleForNewsletter,
+  generateEmailHtml,
+  generateEmailText,
+  buildMailtoUrl,
+  buildGmailWebUrl,
+  buildOutlookWebUrl,
+  triggerMailto,
+  queueFirebaseMail,
+  logNewsletterBroadcast,
+} from "@/lib/newsletter-service";
 import { type Subscriber } from "@/lib/subscribers-service";
 import {
   Mail,
@@ -14,6 +24,7 @@ import {
   CheckCircle2,
   X,
   Zap,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,8 +77,13 @@ export function BroadcastModal({ open, onClose, article, subscribers }: Broadcas
       return;
     }
 
-    const mailto = buildMailtoUrl(emailList, subject, emailText);
-    window.open(mailto, "_blank");
+    // Always copy the email text as fallback to clipboard
+    try {
+      void navigator.clipboard.writeText(emailText);
+    } catch (_) {}
+
+    const { url, isTrimmed } = buildMailtoUrl(emailList, subject, emailText);
+    triggerMailto(url);
 
     void logNewsletterBroadcast({
       articleId: article.id,
@@ -76,7 +92,59 @@ export function BroadcastModal({ open, onClose, article, subscribers }: Broadcas
       method: "mailto",
     });
 
-    toast.success(`Opening mail client with ${emailList.length} BCC subscribers!`);
+    if (isTrimmed) {
+      toast.success(`Opening mail client with ${emailList.length} BCC subscribers!`, {
+        description: "Full story text was also copied to clipboard to avoid mail client character limits.",
+      });
+    } else {
+      toast.success(`Opening mail client with ${emailList.length} BCC subscribers!`, {
+        description: "Full text was also copied to clipboard for easy pasting.",
+      });
+    }
+  };
+
+  const handleOpenGmail = () => {
+    if (emailList.length === 0) {
+      toast.error("No subscribers to send to. Try changing language filter.");
+      return;
+    }
+
+    const gmailUrl = buildGmailWebUrl(emailList, subject, emailText);
+    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+
+    void logNewsletterBroadcast({
+      articleId: article.id,
+      title: article.title,
+      recipientCount: emailList.length,
+      method: "mailto",
+    });
+
+    toast.success(`Opening Gmail Web with ${emailList.length} BCC subscribers!`);
+  };
+
+  const handleOpenOutlook = () => {
+    if (emailList.length === 0) {
+      toast.error("No subscribers to send to. Try changing language filter.");
+      return;
+    }
+
+    const outlookUrl = buildOutlookWebUrl(emailList, subject, emailText);
+    window.open(outlookUrl, "_blank", "noopener,noreferrer");
+
+    void logNewsletterBroadcast({
+      articleId: article.id,
+      title: article.title,
+      recipientCount: emailList.length,
+      method: "mailto",
+    });
+
+    toast.success(`Opening Outlook Web with ${emailList.length} BCC subscribers!`);
+  };
+
+  const handleCopyFullDraft = () => {
+    const fullDraft = `Subject: ${subject}\nBCC: ${emailList.join(", ")}\n\n${emailText}`;
+    void navigator.clipboard.writeText(fullDraft);
+    toast.success("Complete draft (Subject + BCC + Body) copied to clipboard!");
   };
 
   const handleQueueFirebase = async () => {
@@ -234,54 +302,100 @@ export function BroadcastModal({ open, onClose, article, subscribers }: Broadcas
           </div>
 
           {/* Automated Delivery Information */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs space-y-2.5">
             <div className="flex items-center gap-2 font-bold text-foreground">
               <Sparkles className="h-4 w-4 text-primary" />
               <span>How News Reaches Subscribers:</span>
             </div>
-            <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground pl-1 leading-relaxed text-[11px]">
+            <ul className="space-y-1.5 text-muted-foreground pl-1 leading-relaxed text-[11px]">
               <li>
-                <strong className="text-foreground">Instant Option (Gmail / Mail App)</strong>: Click{" "}
-                <em>"Send via Mail App"</em> to open Gmail or Outlook with all subscriber emails placed in <strong>BCC</strong> for reader privacy.
+                <strong className="text-foreground">🌐 Webmail (Most Reliable)</strong>: Click{" "}
+                <strong className="text-primary">Gmail (Web)</strong> or{" "}
+                <strong className="text-primary">Outlook (Web)</strong> to open a pre-filled compose window in your browser with all subscriber emails safely in BCC.
               </li>
               <li>
-                <strong className="text-foreground">Automated Cloud Delivery</strong>: Click{" "}
-                <em>"Queue in Firebase"</em> to write to the Firestore <code>mail</code> collection, which connects with the free <strong>Trigger Email from Firestore</strong> extension.
+                <strong className="text-foreground">✉️ Desktop Mail App (mailto:)</strong>: Click{" "}
+                <em>"Mail App"</em> to launch your system's default email client (e.g. Apple Mail, Thunderbird, Windows Outlook). <em>(Note: If nothing happens when clicking Mail App, your OS has no desktop mail app installed — use Gmail Web instead).</em>
               </li>
-            </ol>
+              <li>
+                <strong className="text-foreground">⚡ Automated Firebase Delivery</strong>: Click{" "}
+                <em>"Queue in Firebase"</em> to dispatch via the Firestore <code>mail</code> collection.
+              </li>
+            </ul>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto rounded-lg border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-          >
-            Cancel
-          </button>
+        <div className="flex flex-col gap-3 border-t border-border bg-card px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyFullDraft}
+                disabled={emailList.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                title="Copy Subject, BCCs, and Body to clipboard"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span>Copy Draft</span>
+              </button>
+            </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleQueueFirebase}
-              disabled={queueing || emailList.length === 0}
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-            >
-              <Zap className="h-3.5 w-3.5" />
-              <span>Queue in Firebase</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Webmail Direct Buttons */}
+              <button
+                type="button"
+                onClick={handleOpenGmail}
+                disabled={emailList.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                title="Open directly in Gmail web browser"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                <span>Gmail (Web)</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleOpenEmailClient}
-              disabled={emailList.length === 0}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs disabled:opacity-50"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              <span>Send via Mail App ({emailList.length})</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleOpenOutlook}
+                disabled={emailList.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3.5 py-1.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-colors disabled:opacity-50"
+                title="Open directly in Outlook web browser"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                <span>Outlook (Web)</span>
+              </button>
+
+              {/* Standard OS Mail App */}
+              <button
+                type="button"
+                onClick={handleOpenEmailClient}
+                disabled={emailList.length === 0}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs disabled:opacity-50"
+                title="Open in system desktop mail client (Thunderbird, Apple Mail, Outlook)"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>Mail App ({emailList.length})</span>
+              </button>
+
+              {/* Firebase Cloud Trigger */}
+              <button
+                type="button"
+                onClick={handleQueueFirebase}
+                disabled={queueing || emailList.length === 0}
+                className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+                title="Queue for automated sending via Firebase"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>Queue in Firebase</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

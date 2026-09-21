@@ -100,13 +100,80 @@ You received this because you subscribed to updates at ${base}
 }
 
 /**
- * Creates a standard mailto: link with BCC populated with subscribers.
+ * Safely constructs a mailto: link with BCC populated with subscribers.
+ * Enforces a conservative 1,800 character limit to prevent silent browser/OS drops
+ * (especially when subject or excerpt contains multi-byte UTF-8 Ethiopic characters).
  */
-export function buildMailtoUrl(recipients: string[], subject: string, body: string): string {
+export function buildMailtoUrl(
+  recipients: string[],
+  subject: string,
+  body: string,
+): { url: string; isTrimmed: boolean } {
+  const bccPart = recipients.length > 0 ? `bcc=${encodeURIComponent(recipients.join(","))}` : "";
+  const subPart = `subject=${encodeURIComponent(subject)}`;
+  const prefix = `mailto:?${[bccPart, subPart].filter(Boolean).join("&")}&body=`;
+
+  const MAX_SAFE_URL_LEN = 1800;
+  const encodedBody = encodeURIComponent(body);
+
+  if (prefix.length + encodedBody.length <= MAX_SAFE_URL_LEN) {
+    return { url: `${prefix}${encodedBody}`, isTrimmed: false };
+  }
+
+  // If too long, trim body to fit within limit
+  const allowedEncodedLen = Math.max(80, MAX_SAFE_URL_LEN - prefix.length - 80);
+  let trimmed = body;
+  while (encodeURIComponent(trimmed + "\n\n...").length > allowedEncodedLen && trimmed.length > 20) {
+    trimmed = trimmed.slice(0, Math.floor(trimmed.length * 0.8));
+  }
+
+  const safeBody = `${trimmed}\n\n[Full story attached in clipboard]`;
+  return {
+    url: `${prefix}${encodeURIComponent(safeBody)}`,
+    isTrimmed: true,
+  };
+}
+
+/**
+ * Builds direct Webmail Compose URLs for in-browser email creation.
+ * These bypass OS desktop client limitations and work on any device.
+ */
+export function buildGmailWebUrl(recipients: string[], subject: string, body: string): string {
   const bcc = encodeURIComponent(recipients.join(","));
   const sub = encodeURIComponent(subject);
   const bod = encodeURIComponent(body);
-  return `mailto:?bcc=${bcc}&subject=${sub}&body=${bod}`;
+  return `https://mail.google.com/mail/?view=cm&fs=1&bcc=${bcc}&su=${sub}&body=${bod}`;
+}
+
+export function buildOutlookWebUrl(recipients: string[], subject: string, body: string): string {
+  const bcc = encodeURIComponent(recipients.join(","));
+  const sub = encodeURIComponent(subject);
+  const bod = encodeURIComponent(body);
+  return `https://outlook.live.com/mail/0/deeplink/compose?bcc=${bcc}&subject=${sub}&body=${bod}`;
+}
+
+export function buildYahooWebUrl(recipients: string[], subject: string, body: string): string {
+  const bcc = encodeURIComponent(recipients.join(","));
+  const sub = encodeURIComponent(subject);
+  const bod = encodeURIComponent(body);
+  return `https://compose.mail.yahoo.com/?bcc=${bcc}&subject=${sub}&body=${bod}`;
+}
+
+/**
+ * Safely triggers a mailto: link in the DOM without opening an unwanted about:blank tab.
+ */
+export function triggerMailto(url: string): void {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_self";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    if (document.body.contains(link)) {
+      document.body.removeChild(link);
+    }
+  }, 400);
 }
 
 /**

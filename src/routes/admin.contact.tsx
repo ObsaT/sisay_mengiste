@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  Copy,
+  Globe,
 } from "lucide-react";
+import { triggerMailto } from "@/lib/newsletter-service";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/contact")({
@@ -193,12 +196,38 @@ function AdminContactPage() {
                 Primary Contact Email <span className="text-destructive">*</span>
               </label>
               {formData.email && (
-                <a
-                  href={`mailto:${formData.email}`}
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3" /> Test email link
-                </a>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerMailto(`mailto:${formData.email}`);
+                      toast.success("Opening default mail app...");
+                    }}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Mail className="h-3 w-3" /> Mail App
+                  </button>
+                  <span className="text-muted-foreground/40">·</span>
+                  <a
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(formData.email)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Globe className="h-3 w-3" /> Gmail
+                  </a>
+                  <span className="text-muted-foreground/40">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(formData.email);
+                      toast.success("Email copied to clipboard!");
+                    }}
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    <Copy className="h-3 w-3" /> Copy
+                  </button>
+                </div>
               )}
             </div>
             <div className="relative">
@@ -226,12 +255,38 @@ function AdminContactPage() {
                 Advertising & Sponsorship Email
               </label>
               {formData.advertisingEmail && (
-                <a
-                  href={`mailto:${formData.advertisingEmail}?subject=Advertising%20Inquiry`}
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3" /> Test ad mailto link
-                </a>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerMailto(`mailto:${formData.advertisingEmail}?subject=Advertising%20Inquiry`);
+                      toast.success("Opening default mail app...");
+                    }}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Mail className="h-3 w-3" /> Mail App
+                  </button>
+                  <span className="text-muted-foreground/40">·</span>
+                  <a
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(formData.advertisingEmail)}&su=Advertising%20Inquiry`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <Globe className="h-3 w-3" /> Gmail
+                  </a>
+                  <span className="text-muted-foreground/40">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(formData.advertisingEmail);
+                      toast.success("Advertising email copied to clipboard!");
+                    }}
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    <Copy className="h-3 w-3" /> Copy
+                  </button>
+                </div>
               )}
             </div>
             <div className="relative">

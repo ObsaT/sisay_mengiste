@@ -248,6 +248,9 @@ export function AdBanner({
     slot?.linkUrl ||
     `mailto:${contact.advertisingEmail || contact.email || "otemesgen@gmail.com"}?subject=Advertising%20Inquiry`;
 
+  const isMailto = effectiveLinkUrl.startsWith("mailto:");
+  const linkTarget = isMailto ? undefined : (openInNewTab ? "_blank" : undefined);
+
   // Standardized Ad Disclosures (FTC / IAB Compliance)
   const labelMap = {
     am: "ማስታወቂያ",
@@ -312,7 +315,7 @@ export function AdBanner({
 
         <a
           href={effectiveLinkUrl}
-          target={openInNewTab ? "_blank" : undefined}
+          target={linkTarget}
           rel="noopener noreferrer sponsored"
           className="group relative flex w-full flex-col sm:flex-row sm:items-center justify-between overflow-hidden rounded-2xl border border-border/80 bg-card hover:bg-muted/30 p-3.5 sm:p-4 text-foreground shadow-xs transition-all hover:border-primary/50 hover:shadow-md gap-4"
         >
@@ -452,7 +455,7 @@ export function AdBanner({
 
         <a
           href={effectiveLinkUrl}
-          target={openInNewTab ? "_blank" : undefined}
+          target={linkTarget}
           rel="noopener noreferrer sponsored"
           className="group relative flex flex-col justify-between w-full overflow-hidden rounded-2xl border border-border/80 bg-card hover:bg-muted/20 shadow-xs transition-all hover:border-primary/40 hover:shadow-md"
         >
