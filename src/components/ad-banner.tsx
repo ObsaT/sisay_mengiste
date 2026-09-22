@@ -54,7 +54,7 @@ function CarouselControls({
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 bg-background/90 backdrop-blur-xs px-2 py-0.5 rounded-full border border-border/70 text-[10px] font-bold text-muted-foreground shadow-2xs ${className}`}
+      className={`inline-flex items-center gap-1 sm:gap-1.5 bg-background/90 backdrop-blur-xs px-1.5 sm:px-2 py-0.5 rounded-full border border-border/70 text-[9px] sm:text-[10px] font-bold text-muted-foreground shadow-2xs shrink-0 ${className}`}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -86,7 +86,7 @@ function CarouselControls({
         <ChevronLeft className="h-3 w-3" />
       </button>
 
-      <div className="flex items-center gap-1 px-0.5">
+      <div className="flex items-center gap-0.5 sm:gap-1 px-0.5">
         {Array.from({ length: count }).map((_, i) => (
           <button
             key={i}
@@ -95,7 +95,7 @@ function CarouselControls({
             aria-label={`Go to advertisement ${i + 1}`}
             className={`transition-all duration-300 rounded-full cursor-pointer ${
               i === current
-                ? "h-1.5 w-3.5 bg-primary"
+                ? "h-1.5 w-3 sm:w-3.5 bg-primary"
                 : "h-1.5 w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
             }`}
           />
@@ -282,12 +282,12 @@ export function AdBanner({
   if (variant === "leaderboard") {
     return (
       <div
-        className={`mx-auto max-w-7xl px-4 py-3 ${className}`}
+        className={`mx-auto max-w-7xl px-3 py-2 sm:px-4 sm:py-3 w-full ${className}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* IAB Disclosure Header */}
-        <div className="flex items-center justify-between px-1 mb-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 px-1 mb-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-1">
               <Tag className="h-2.5 w-2.5 text-primary/70" />
@@ -307,7 +307,7 @@ export function AdBanner({
             )}
           </div>
           {effectiveSponsorName && (
-            <span className="text-[10px] font-medium text-muted-foreground/80">
+            <span className="text-[10px] font-medium text-muted-foreground/80 truncate max-w-[150px] xs:max-w-[220px] sm:max-w-none">
               Sponsored by <span className="font-semibold text-foreground/90">{effectiveSponsorName}</span>
             </span>
           )}
@@ -317,11 +317,11 @@ export function AdBanner({
           href={effectiveLinkUrl}
           target={linkTarget}
           rel="noopener noreferrer sponsored"
-          className="group relative flex w-full flex-col sm:flex-row sm:items-center justify-between overflow-hidden rounded-2xl border border-border/80 bg-card hover:bg-muted/30 p-3.5 sm:p-4 text-foreground shadow-xs transition-all hover:border-primary/50 hover:shadow-md gap-4"
+          className="group relative flex w-full flex-col sm:flex-row sm:items-center justify-between overflow-hidden rounded-2xl border border-border/80 bg-card hover:bg-muted/30 p-3 sm:p-4 text-foreground shadow-xs transition-all hover:border-primary/50 hover:shadow-md gap-3 sm:gap-4"
         >
           <div
             key={activeAd?.id || `leaderboard-${currentIndex}`}
-            className={`flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4 ${transitionClass}`}
+            className={`flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4 ${transitionClass}`}
           >
             {effectiveDisplayStyle === "banner" && effectiveImageUrl ? (
               // Full Graphic Banner with Hover Badge
@@ -332,9 +332,9 @@ export function AdBanner({
                   loading="lazy"
                   decoding="async"
                   onError={() => setImgLoadError(true)}
-                  className="h-20 sm:h-24 w-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
+                  className="h-24 xs:h-28 sm:h-28 md:h-32 w-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
                 />
-                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg bg-black/75 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-md transition-transform group-hover:scale-105">
+                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg bg-black/75 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-md transition-transform group-hover:scale-105">
                   <span>{actionButtonText}</span>
                   <ExternalLink className="h-3 w-3" />
                 </div>
@@ -342,9 +342,9 @@ export function AdBanner({
             ) : (
               // Native Ad Unit: Image Thumbnail + Sponsor + Headline + Description + Button
               <>
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                   {effectiveImageUrl ? (
-                    <div className="relative h-16 w-24 sm:h-20 sm:w-32 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
+                    <div className="relative h-16 w-20 xs:w-24 sm:h-20 sm:w-32 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted">
                       <img
                         src={effectiveImageUrl}
                         alt={effectiveTitle || effectiveSponsorName || adLabel}
@@ -355,18 +355,18 @@ export function AdBanner({
                       />
                     </div>
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold border border-gold/30">
-                      <Sparkles className="h-6 w-6" />
+                    <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold border border-gold/30">
+                      <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   )}
 
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      <span className="rounded bg-primary/10 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary">
                         {effectiveSponsorName || "Featured Partner"}
                       </span>
                     </div>
-                    <h4 className="font-display text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                    <h4 className="font-display text-xs sm:text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 sm:truncate">
                       {effectiveTitle || (language === "am"
                         ? "እዚህ ጋር ማስታወቂያዎን ያስተዋውቁ — ከ500,000+ በላይ አንባቢዎች ጋር ይገናኙ"
                         : language === "om"
@@ -374,11 +374,11 @@ export function AdBanner({
                         : "Advertise with YERAS Media Network — Reach 500,000+ Engaged Readers")}
                     </h4>
                     {effectiveDescription ? (
-                      <p className="text-xs text-muted-foreground line-clamp-1">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2">
                         {effectiveDescription}
                       </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground/80 line-clamp-1">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground/80 line-clamp-1 sm:line-clamp-2">
                         {language === "am"
                           ? "ተደራሽ የዲጂታል ማስታወቂያዎች በድረ-ገጻችን እና ማህበራዊ ገጾቻችን።"
                           : language === "om"
@@ -390,7 +390,7 @@ export function AdBanner({
                 </div>
 
                 {/* Action Button */}
-                <span className="inline-flex items-center gap-1.5 self-start sm:self-center rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-xs transition-all group-hover:scale-105 shrink-0">
+                <span className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground shadow-xs transition-all group-hover:scale-105 shrink-0 mt-1 sm:mt-0">
                   <span>{actionButtonText}</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </span>
@@ -422,12 +422,12 @@ export function AdBanner({
   if (variant === "sidebar") {
     return (
       <div
-        className={`flex flex-col w-full ${className}`}
+        className={`flex flex-col w-full max-w-full ${className}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Disclosure Bar */}
-        <div className="flex items-center justify-between px-1 mb-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 px-1 mb-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-1">
               <Tag className="h-2.5 w-2.5 text-primary/70" />
@@ -466,7 +466,7 @@ export function AdBanner({
             {effectiveImageUrl ? (
               <div>
                 {/* Image banner */}
-                <div className="relative h-44 w-full overflow-hidden bg-muted">
+                <div className="relative h-40 xs:h-44 sm:h-48 w-full overflow-hidden bg-muted">
                   <img
                     src={effectiveImageUrl}
                     alt={effectiveTitle || effectiveSponsorName || adLabel}
@@ -481,7 +481,7 @@ export function AdBanner({
                 </div>
 
                 {/* Text info & Button */}
-                <div className="p-4 space-y-2">
+                <div className="p-3.5 sm:p-4 space-y-2">
                   <h4 className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                     {effectiveTitle || (language === "am"
                       ? "ንግድዎን በየራስ ሚዲያ ኔትወርክ ላይ ያሳድጉ"
@@ -503,11 +503,11 @@ export function AdBanner({
               </div>
             ) : (
               // Rich editorial fallback card
-              <div className="p-5 space-y-3">
+              <div className="p-4 sm:p-5 space-y-2.5">
                 <span className="inline-block rounded bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
                   {effectiveSponsorName || "Media Partnership"}
                 </span>
-                <h4 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                <h4 className="font-display text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                   {effectiveTitle || (language === "am"
                     ? "ንግድዎን በየራስ ሚዲያ ኔትወርክ ላይ ያሳድጉ"
                     : language === "om"
@@ -521,7 +521,7 @@ export function AdBanner({
                     ? "Iddoo beeksisaa qulqullina qabu dhaabbilee daldalaatiif."
                     : "Targeted digital display placements across all editorial sections.")}
                 </p>
-                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs font-bold text-primary">
+                <div className="pt-2.5 border-t border-border/60 flex items-center justify-between text-xs font-bold text-primary">
                   <span>{actionButtonText}</span>
                   <ExternalLink className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </div>
@@ -553,12 +553,12 @@ export function AdBanner({
   if (variant === "in-article") {
     return (
       <div
-        className={`my-8 border-y border-border/80 bg-muted/20 py-4 px-4 sm:px-6 rounded-2xl ${className}`}
+        className={`my-6 sm:my-8 border-y border-border/80 bg-muted/20 py-3 sm:py-4 px-3 sm:px-6 rounded-2xl ${className}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Disclosure */}
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 px-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
               <Tag className="h-2.5 w-2.5 text-primary/70" />
@@ -586,13 +586,13 @@ export function AdBanner({
           href={effectiveLinkUrl}
           target={openInNewTab ? "_blank" : undefined}
           rel="noopener noreferrer sponsored"
-          className="group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/50 hover:shadow-sm"
+          className="group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-xl border border-border/70 bg-card p-3 sm:p-4 transition-all hover:border-primary/50 hover:shadow-sm"
         >
           <div
             key={activeAd?.id || `in-article-${currentIndex}`}
-            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full ${transitionClass}`}
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full ${transitionClass}`}
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
               {effectiveImageUrl ? (
                 <img
                   src={effectiveImageUrl}
@@ -600,7 +600,7 @@ export function AdBanner({
                   loading="lazy"
                   decoding="async"
                   onError={() => setImgLoadError(true)}
-                  className="h-28 sm:h-20 w-full sm:w-32 object-cover rounded-xl border border-border/60 shrink-0 transition-transform group-hover:scale-105"
+                  className="h-36 sm:h-20 w-full sm:w-32 object-cover rounded-xl border border-border/60 shrink-0 transition-transform group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -614,14 +614,14 @@ export function AdBanner({
                     {effectiveSponsorName}
                   </span>
                 )}
-                <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                <h4 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {effectiveTitle || (language === "am"
                     ? "የንግድዎን ማስታወቂያ በዚህ ክፍል ማስተዋወቅ ይፈልጋሉ?"
                     : language === "om"
                     ? "Beeksisa daldala keessanii asirratti beeksisuu barbaadduu?"
                     : "Feature your brand inside Ethiopia's most engaged stories")}
                 </h4>
-                <p className="text-xs text-muted-foreground line-clamp-2">
+                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2">
                   {effectiveDescription || (language === "am"
                     ? "የማስታወቂያ ቡድናችንን አሁኑኑ ያነጋግሩ።"
                     : language === "om"
@@ -631,7 +631,7 @@ export function AdBanner({
               </div>
             </div>
 
-            <span className="inline-flex items-center gap-1 rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 self-start sm:self-center">
+            <span className="inline-flex items-center justify-center gap-1 w-full sm:w-auto rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 self-stretch sm:self-center">
               <span>{actionButtonText}</span>
               <ExternalLink className="h-3 w-3" />
             </span>
@@ -660,12 +660,12 @@ export function AdBanner({
   // ─────────────────────────────────────────────────────────────
   return (
     <div
-      className={`my-10 ${className}`}
+      className={`my-6 sm:my-10 ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Disclosure */}
-      <div className="flex items-center justify-between mb-1.5 px-1">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5 px-1">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 flex items-center gap-1">
             <Tag className="h-2.5 w-2.5 text-primary/70" />
@@ -685,7 +685,7 @@ export function AdBanner({
           )}
         </div>
         {effectiveSponsorName && (
-          <span className="text-[10px] font-semibold text-muted-foreground/80">
+          <span className="text-[10px] font-semibold text-muted-foreground/80 truncate max-w-[150px] xs:max-w-[220px] sm:max-w-none">
             Sponsored by {effectiveSponsorName}
           </span>
         )}
@@ -695,17 +695,17 @@ export function AdBanner({
         href={effectiveLinkUrl}
         target={openInNewTab ? "_blank" : undefined}
         rel="noopener noreferrer sponsored"
-        className="group relative block overflow-hidden rounded-2xl border border-border/80 bg-neutral-900 p-6 sm:p-8 text-white shadow-lg transition-all hover:border-primary/50 hover:shadow-xl"
+        className="group relative block overflow-hidden rounded-2xl border border-border/80 bg-neutral-900 p-4 xs:p-5 sm:p-6 md:p-8 text-white shadow-lg transition-all hover:border-primary/50 hover:shadow-xl"
       >
         <div
           key={activeAd?.id || `billboard-${currentIndex}`}
-          className={`relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 ${transitionClass}`}
+          className={`relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6 ${transitionClass}`}
         >
-          <div className="max-w-xl space-y-2.5">
-            <span className="inline-block rounded-full bg-gold/20 px-3 py-0.5 text-xs font-bold text-gold border border-gold/30">
+          <div className="max-w-xl space-y-2 sm:space-y-2.5">
+            <span className="inline-block rounded-full bg-gold/20 px-3 py-0.5 text-[10px] sm:text-xs font-bold text-gold border border-gold/30">
               {effectiveSponsorName || "Special Feature"}
             </span>
-            <h3 className="font-display text-xl sm:text-2xl font-black text-white group-hover:text-gold transition-colors leading-tight">
+            <h3 className="font-display text-lg sm:text-xl md:text-2xl font-black text-white group-hover:text-gold transition-colors leading-tight">
               {effectiveTitle || (language === "am"
                 ? "የኢትዮጵያን ግንባር ቀደም ሚዲያ መድረክ ይቀላቀሉ"
                 : language === "om"
@@ -719,7 +719,7 @@ export function AdBanner({
                 ? "Telegram, Facebook fi marsariitii keenya irratti beekamtii bal'aa argadhaa."
                 : "Amplify your reach with multi-channel coverage across our web portal, Telegram, and social channels.")}
             </p>
-            <div className="pt-2 flex items-center gap-2 text-xs font-bold text-gold group-hover:underline">
+            <div className="pt-1.5 sm:pt-2 flex items-center gap-2 text-xs font-bold text-gold group-hover:underline">
               <span>{actionButtonText}</span>
               <ExternalLink className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -733,7 +733,7 @@ export function AdBanner({
                 loading="lazy"
                 decoding="async"
                 onError={() => setImgLoadError(true)}
-                className="h-44 sm:h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="h-40 sm:h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             </div>
           )}

@@ -1454,11 +1454,11 @@ function AdsSettingsTab() {
 
                               {/* Titles */}
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-[10px] font-bold text-muted-foreground uppercase">
                                     #{idx + 1}
                                   </span>
-                                  <h4 className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">
+                                  <h4 className="text-xs font-bold text-foreground truncate max-w-[180px] xs:max-w-[240px] sm:max-w-xs">
                                     {ad.sponsorName ? `${ad.sponsorName} — ` : ""}
                                     {ad.title || "Untitled Campaign"}
                                   </h4>
@@ -1814,8 +1814,8 @@ function AdsSettingsTab() {
                   </button>
 
                   {isPreviewOpen && (
-                    <div className="mt-3 rounded-2xl border border-border/80 bg-neutral-950/20 p-4 sm:p-6 overflow-hidden">
-                      <div className="mb-2 flex items-center justify-between">
+                    <div className="mt-3 rounded-2xl border border-border/80 bg-neutral-950/20 p-3 sm:p-6 overflow-hidden max-w-full">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           Simulated Site Render ({activeAdsList.length} Active in rotation)
                         </span>
@@ -1823,7 +1823,7 @@ function AdsSettingsTab() {
                           Slot ID: {def.id}
                         </span>
                       </div>
-                      <div className="bg-background rounded-xl border border-border/60 p-2">
+                      <div className="bg-background rounded-xl border border-border/60 p-1 sm:p-2 overflow-hidden max-w-full">
                         {/* Real live AdBanner component with multi-ad rotation */}
                         <AdBanner variant={def.id} customSlot={slot} />
                       </div>

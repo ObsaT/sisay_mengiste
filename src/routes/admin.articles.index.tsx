@@ -241,7 +241,7 @@ function ArticlesList() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Delete All Option */}
           {articles.length > 0 && (
             <button

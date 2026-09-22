@@ -17,6 +17,10 @@ import {
   Users,
   Sun,
   Moon,
+  Menu,
+  X,
+  Megaphone,
+  Palette,
 } from "lucide-react";
 import logoImg from "@/assets/logo.jpg";
 
@@ -99,6 +103,7 @@ function AdminLayout() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const matches = useMatches();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isLoginPage =
     matches.some((m) => m.id.includes("login")) ||
     (typeof window !== "undefined" && window.location.pathname.includes("/admin/login"));
@@ -108,6 +113,34 @@ function AdminLayout() {
       navigate({ to: "/admin/login" });
     }
   }, [user, loading, error, isLoginPage, navigate]);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [matches]);
+
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
 
   if (loading && !isLoginPage) {
     return (
@@ -182,7 +215,7 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-muted/20">
-      {/* Sidebar */}
+      {/* ── Desktop Sidebar (Docked to Side on lg+ screens) ────── */}
       <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:flex lg:flex-col justify-between">
         <div>
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
@@ -215,19 +248,22 @@ function AdminLayout() {
           </div>
 
           <nav className="px-3 py-4">
+            <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {t("adminNavDashboard")} & Management
+            </div>
             <ul className="space-y-1">
               {navItems.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     {...(item.exact ? { activeOptions: { exact: true } } : {})}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                     activeProps={{
-                      className: "bg-primary/10 text-primary font-semibold",
+                      className: "bg-primary/10 text-primary font-semibold shadow-2xs",
                     }}
                   >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
                   </Link>
                 </li>
               ))}
@@ -235,17 +271,46 @@ function AdminLayout() {
                 <Link
                   to="/admin/articles/$id"
                   params={{ id: "new" }}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex items-center gap-3 rounded-xl bg-primary/10 text-primary border border-primary/20 px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-primary hover:text-primary-foreground mt-2"
                 >
-                  <PlusCircle className="h-4 w-4" />
-                  {t("adminNavNewArticle")}
+                  <PlusCircle className="h-4 w-4 shrink-0" />
+                  <span>{t("adminNavNewArticle")}</span>
                 </Link>
               </li>
             </ul>
+
+            {/* Quick Shortcuts Section */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Quick Shortcuts
+              </div>
+              <ul className="space-y-1">
+                <li>
+                  <Link
+                    to="/admin/settings"
+                    hash="ads"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Megaphone className="h-4 w-4 text-primary shrink-0" />
+                    <span>Advertisements</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/settings"
+                    hash="appearance"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Palette className="h-4 w-4 text-primary shrink-0" />
+                    <span>Theme & Appearance</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </nav>
         </div>
 
-        <div className="border-t border-border p-4 space-y-3">
+        <div className="border-t border-border p-4 space-y-3 shrink-0">
           {/* User profile & View site */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 truncate">
@@ -290,22 +355,197 @@ function AdminLayout() {
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
           >
             <LogOut className="h-3.5 w-3.5" />
-            {t("adminSignOut")}
+            <span>{t("adminSignOut")}</span>
           </button>
         </div>
       </aside>
 
-      {/* Mobile header */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-          <Link to="/admin" className="flex items-center gap-2">
-            <img
-              src={logoImg}
-              alt="የራስ"
-              className="h-7 w-auto object-contain bg-white rounded p-0.5 shadow-xs"
-            />
-            <span className="font-display text-sm font-bold">የራስ Admin</span>
-          </Link>
+      {/* ── Mobile Side Menu Backdrop Overlay ───────────────────── */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
+          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* ── Mobile Side Menu Drawer (Slides In from the Side) ───── */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col justify-between border-r border-border bg-card shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-label="Admin Side Navigation"
+      >
+        <div className="flex flex-col flex-1 overflow-y-auto">
+          {/* Drawer Header */}
+          <div className="flex h-16 items-center justify-between border-b border-border px-4 shrink-0">
+            <Link
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 group min-w-0"
+            >
+              <img
+                src={logoImg}
+                alt="የራስ"
+                className="h-8 w-auto object-contain bg-white rounded p-0.5 shadow-xs shrink-0"
+              />
+              <span className="font-display text-sm font-bold text-foreground truncate">
+                የራስ Admin
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors cursor-pointer"
+              aria-label="Close side menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Navigation Items */}
+          <nav className="px-3 py-4">
+            <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {t("adminNavDashboard")} & Navigation
+            </div>
+            <ul className="space-y-1">
+              {navItems.map((item) => (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    {...(item.exact ? { activeOptions: { exact: true } } : {})}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                    activeProps={{
+                      className: "bg-primary/10 text-primary font-semibold shadow-2xs",
+                    }}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link
+                  to="/admin/articles/$id"
+                  params={{ id: "new" }}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl bg-primary/10 text-primary border border-primary/20 px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-primary hover:text-primary-foreground mt-2"
+                >
+                  <PlusCircle className="h-4 w-4 shrink-0" />
+                  <span>{t("adminNavNewArticle")}</span>
+                </Link>
+              </li>
+            </ul>
+
+            {/* Quick Shortcuts Section */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Settings Shortcuts
+              </div>
+              <ul className="space-y-1">
+                <li>
+                  <Link
+                    to="/admin/settings"
+                    hash="ads"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Megaphone className="h-4 w-4 text-primary shrink-0" />
+                    <span>Advertisements</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/admin/settings"
+                    hash="appearance"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Palette className="h-4 w-4 text-primary shrink-0" />
+                    <span>Theme & Appearance</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </div>
+
+        {/* Drawer Bottom Panel */}
+        <div className="border-t border-border p-4 space-y-3 bg-card shrink-0">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2 truncate">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {user.email?.charAt(0).toUpperCase() ?? "A"}
+              </div>
+              <span className="truncate text-xs text-muted-foreground">{user.email ?? ""}</span>
+            </div>
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary p-1"
+              title={t("adminViewSite")}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
+            <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              {theme === "dark" ? (
+                <Moon className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Sun className="h-3.5 w-3.5 text-amber-500" />
+              )}
+              <span>{theme === "dark" ? "Dark Theme" : "Light Theme"}</span>
+            </span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-muted transition-colors shadow-2xs"
+            >
+              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>{t("adminSignOut")}</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main Content Area & Mobile Header ───────────────────── */}
+      <div className="flex flex-1 flex-col min-w-0">
+        {/* Mobile Header with Side Menu Hamburger Toggle */}
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/95 backdrop-blur-sm px-3 sm:px-4 lg:hidden">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-all hover:bg-muted active:scale-95 cursor-pointer shadow-2xs"
+              aria-label="Open side menu"
+              title="Open side menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Link to="/admin" className="flex items-center gap-2 min-w-0">
+              <img
+                src={logoImg}
+                alt="የራስ"
+                className="h-7 w-auto object-contain bg-white rounded p-0.5 shadow-xs shrink-0"
+              />
+              <span className="font-display text-sm font-bold text-foreground truncate">
+                የራስ Admin
+              </span>
+            </Link>
+          </div>
+
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -321,36 +561,20 @@ function AdminLayout() {
               )}
             </button>
             <AdminLanguageSelect compact />
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                {...(item.exact ? { activeOptions: { exact: true } } : {})}
-                className="rounded-lg p-2 text-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
-                activeProps={{ className: "text-primary" }}
-              >
-                <item.icon className="h-4 w-4" />
-              </Link>
-            ))}
             <Link
               to="/admin/articles/$id"
               params={{ id: "new" }}
-              className="rounded-lg p-2 text-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              className="flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-all"
+              title={t("adminNavNewArticle")}
             >
-              <PlusCircle className="h-4 w-4" />
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">{t("adminNavNewArticle")}</span>
             </Link>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="rounded-lg p-2 text-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
