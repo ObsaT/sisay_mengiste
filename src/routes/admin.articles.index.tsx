@@ -7,7 +7,7 @@ import {
   updateArticle,
   type Article,
 } from "@/lib/firestore-service";
-import { NAV } from "@/lib/news-data";
+import { NAV, SECTION_TO_SLUG } from "@/lib/news-data";
 import { useLanguage } from "@/contexts/language-context";
 import { type Language } from "@/lib/i18n";
 import {
@@ -38,6 +38,7 @@ function ArticlesList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterSection, setFilterSection] = useState("all");
+  const [filterFormat, setFilterFormat] = useState<"all" | "video" | "standard">("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<Article | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -148,12 +149,39 @@ function ArticlesList() {
       !search ||
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.author.toLowerCase().includes(search.toLowerCase());
-    const matchesSection = filterSection === "all" || a.section === filterSection;
+
+    const isVideo = Boolean(a.youtubeVideoId || a.videoUrl);
+
+    // Format Filter (Videos vs Written Articles)
+    let matchesFormat = true;
+    if (filterFormat === "video") {
+      matchesFormat = isVideo;
+    } else if (filterFormat === "standard") {
+      matchesFormat = !isVideo;
+    }
+
+    // Section Filter
+    const isVideoSectionFilter =
+      filterSection === "ቪዲዮ" ||
+      filterSection.toLowerCase() === "video" ||
+      filterSection.toLowerCase() === "viidiyoo";
+
+    let matchesSection = true;
+    if (filterSection !== "all") {
+      if (isVideoSectionFilter) {
+        // When Video section is selected, strictly list ONLY articles that have video
+        matchesSection = isVideo;
+      } else {
+        matchesSection = a.section === filterSection || SECTION_TO_SLUG[a.section] === filterSection;
+      }
+    }
+
     const matchesLanguage =
       filterLanguage === "all" ||
       (filterLanguage === "am" && (!a.language || a.language === "am")) ||
       a.language === filterLanguage;
-    return matchesSearch && matchesSection && matchesLanguage;
+
+    return matchesSearch && matchesFormat && matchesSection && matchesLanguage;
   });
 
   const published = articles.filter((a) => a.published).length;
@@ -296,6 +324,20 @@ function ArticlesList() {
           </select>
         </div>
 
+        {/* Format Filter */}
+        <div className="relative">
+          <Video className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <select
+            value={filterFormat}
+            onChange={(e) => setFilterFormat(e.target.value as "all" | "video" | "standard")}
+            className="rounded-xl border border-border bg-card py-2.5 pl-10 pr-8 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+          >
+            <option value="all">All Formats</option>
+            <option value="video">🎬 Videos Only</option>
+            <option value="standard">📰 Written Articles Only</option>
+          </select>
+        </div>
+
         {/* Language Filter */}
         <div className="relative">
           <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -376,7 +418,7 @@ function ArticlesList() {
               <tbody className="divide-y divide-border">
                 {filtered.map((article) => {
                   const isSelected = selectedIds.has(article.id);
-                  const isVideo = Boolean(article.youtubeVideoId || article.videoUrl || article.section === "ቪዲዮ");
+                  const isVideo = Boolean(article.youtubeVideoId || article.videoUrl);
                   return (
                     <tr
                       key={article.id}

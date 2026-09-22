@@ -338,12 +338,20 @@ export async function getPublishedArticles(pageSize = 30): Promise<Article[]> {
 
 export async function getPublishedBySection(sectionOrSlug: string): Promise<Article[]> {
   const all = await fetchAllArticles();
+  const lower = (sectionOrSlug || "").toLowerCase();
+  const isVideoQuery = lower === "video" || lower === "viidiyoo" || sectionOrSlug === "ቪዲዮ";
+
+  if (isVideoQuery) {
+    // When video is selected, strictly list ONLY articles that have video content
+    return all.filter((a) => a.published && Boolean(a.youtubeVideoId || a.videoUrl));
+  }
+
   const amharicLabel = CATEGORY_LABEL[sectionOrSlug] || sectionOrSlug;
   return all.filter(
     (a) =>
       a.published &&
       (a.section === amharicLabel ||
-        a.section.toLowerCase() === sectionOrSlug.toLowerCase() ||
+        a.section.toLowerCase() === lower ||
         SECTION_TO_SLUG[a.section] === sectionOrSlug),
   );
 }
@@ -391,8 +399,29 @@ export async function findArticleBySlug(slug: string): Promise<Article | null> {
 
 export async function findRelatedArticles(article: Article): Promise<Article[]> {
   const all = await fetchAllArticles();
+  const isVideo = Boolean(article.youtubeVideoId || article.videoUrl);
+
+  if (isVideo) {
+    // When viewing a video article, strictly show other video articles
+    const videoRelated = all
+      .filter(
+        (a) =>
+          a.published &&
+          Boolean(a.youtubeVideoId || a.videoUrl) &&
+          a.id !== article.id,
+      )
+      .slice(0, 3);
+    if (videoRelated.length > 0) return videoRelated;
+  }
+
   return all
-    .filter((a) => a.published && a.section === article.section && a.id !== article.id)
+    .filter(
+      (a) =>
+        a.published &&
+        a.section === article.section &&
+        a.id !== article.id &&
+        !Boolean(a.youtubeVideoId || a.videoUrl),
+    )
     .slice(0, 3);
 }
 

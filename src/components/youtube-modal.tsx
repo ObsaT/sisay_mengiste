@@ -122,6 +122,12 @@ export function YouTubeModal({
     toast.success("Video removed from library.");
   };
 
+  const handleClearList = () => {
+    setVideoList([]);
+    saveYouTubeVideos([]);
+    toast.success("All videos cleared from library.");
+  };
+
   const handleSelect = (video: YouTubeVideoItem) => {
     onSelectVideo(video);
     onOpenChange(false);
@@ -218,13 +224,27 @@ export function YouTubeModal({
               </form>
             </div>
 
+            {videoList.length > 0 && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>{videoList.length} {videoList.length === 1 ? "video" : "videos"} in your list</span>
+                <button
+                  type="button"
+                  onClick={handleClearList}
+                  className="text-[11px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span>Clear All</span>
+                </button>
+              </div>
+            )}
+
             {/* Video Cards Grid */}
             {filteredVideos.length === 0 ? (
               <div className="py-12 text-center rounded-xl border border-dashed border-border bg-muted/20">
                 <Video className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-xs font-semibold text-foreground">No matching videos found</p>
+                <p className="text-xs font-semibold text-foreground">No videos in your list yet</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Paste a YouTube URL above to add it to your channel list.
+                  Paste a YouTube video link above or use the &ldquo;Paste Video URL&rdquo; tab to add your channel&apos;s videos.
                 </p>
               </div>
             ) : (

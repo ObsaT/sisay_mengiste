@@ -12,30 +12,8 @@ export interface YouTubeVideoItem {
   publishedDate?: string;
 }
 
-// Curated default video list from Ethiopian Reporter / Sisay Mengiste Media
-export const DEFAULT_YOUTUBE_VIDEOS: YouTubeVideoItem[] = [
-  {
-    id: "gU5n77mR-6I",
-    title: "የኢትዮጵያ ሪፖርተር ሳምንታዊ የዜና እና ወቅታዊ ጉዳዮች ትንታኔ",
-    authorName: "The Reporter Ethiopia",
-    thumbnailUrl: "https://img.youtube.com/vi/gU5n77mR-6I/hqdefault.jpg",
-    videoUrl: "https://www.youtube.com/watch?v=gU5n77mR-6I",
-  },
-  {
-    id: "jNQXAC9IVRw",
-    title: "የወቅታዊ የኢኮኖሚ እና ፖለቲካዊ ሁነቶች ዳሰሳ — ልዩ ቆይታ",
-    authorName: "The Reporter Ethiopia",
-    thumbnailUrl: "https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg",
-    videoUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-  },
-  {
-    id: "kJQP7kiw5Fk",
-    title: "የቀጣናው የዲፕሎማሲ ግንኙነት እና የሰላም ስምምነት አፈጻጸም ሂደት",
-    authorName: "The Reporter Ethiopia",
-    thumbnailUrl: "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
-    videoUrl: "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
-  },
-];
+// Saved YouTube video list (starts empty so user only adds their own channel content)
+export const DEFAULT_YOUTUBE_VIDEOS: YouTubeVideoItem[] = [];
 
 const YOUTUBE_LIST_STORAGE_KEY = "reporter_youtube_video_list";
 
@@ -102,7 +80,7 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
         return {
           id: videoId,
           title: data.title || "YouTube Video",
-          authorName: data.author_name || "The Reporter Ethiopia",
+          authorName: data.author_name || "YERAS Media Network",
           thumbnailUrl: data.thumbnail_url || fallbackThumbnail,
           videoUrl: standardUrl,
         };
@@ -115,23 +93,23 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   return {
     id: videoId,
     title: `YouTube Video (${videoId})`,
-    authorName: "The Reporter Ethiopia",
+    authorName: "YERAS Media Network",
     thumbnailUrl: fallbackThumbnail,
     videoUrl: standardUrl,
   };
 }
 
 /**
- * Get saved list of YouTube videos from localStorage with defaults.
+ * Get saved list of YouTube videos from localStorage.
  */
 export function getSavedYouTubeVideos(): YouTubeVideoItem[] {
   try {
     const raw = localStorage.getItem(YOUTUBE_LIST_STORAGE_KEY);
-    if (!raw) return DEFAULT_YOUTUBE_VIDEOS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_YOUTUBE_VIDEOS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_YOUTUBE_VIDEOS;
+    return [];
   }
 }
 
