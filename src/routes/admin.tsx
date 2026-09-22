@@ -99,7 +99,9 @@ function AdminLayout() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const matches = useMatches();
-  const isLoginPage = matches.some((m) => m.id.includes("login"));
+  const isLoginPage =
+    matches.some((m) => m.id.includes("login")) ||
+    (typeof window !== "undefined" && window.location.pathname.includes("/admin/login"));
 
   useEffect(() => {
     if (!loading && !user && !error && !isLoginPage) {

@@ -11,6 +11,12 @@ import { Toaster } from "sonner";
 
 import "./styles.css";
 
+// Seamless migration for legacy hash routes (e.g. /#/admin -> /admin)
+if (typeof window !== "undefined" && window.location.hash.startsWith("#/")) {
+  const hashPath = window.location.hash.slice(1);
+  window.history.replaceState(null, "", hashPath);
+}
+
 const router = getRouter();
 
 const rootElement = document.getElementById("root")!;
