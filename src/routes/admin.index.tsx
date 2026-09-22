@@ -117,15 +117,15 @@ function AdminDashboard() {
             <Database className={`h-4 w-4 ${seeding ? "animate-pulse" : ""}`} />
             {t("adminSeedDemo")}
           </button>
-          <a
-            href="/sisay_mengiste/"
+          <Link
+            to="/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             <ExternalLink className="h-4 w-4" />
             {t("adminViewSite")}
-          </a>
+          </Link>
           <Link
             to="/admin/articles/$id"
             params={{ id: "new" }}

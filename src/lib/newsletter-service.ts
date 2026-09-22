@@ -17,8 +17,8 @@ export interface ArticleForNewsletter {
  * Generate a responsive, professional HTML newsletter email for an article.
  */
 export function generateEmailHtml(article: ArticleForNewsletter, siteUrl?: string): string {
-  const base = siteUrl || window.location.origin;
-  const articleUrl = article.slug ? `${base}/sisay_mengiste/article/${article.slug}` : base;
+  const base = siteUrl || (typeof window !== "undefined" ? window.location.origin : "");
+  const articleUrl = article.slug ? `${base}/#/article/${article.slug}` : base;
 
   return `
 <!DOCTYPE html>
@@ -79,8 +79,8 @@ export function generateEmailHtml(article: ArticleForNewsletter, siteUrl?: strin
  * Generate plain text fallback for email clients that do not render HTML.
  */
 export function generateEmailText(article: ArticleForNewsletter, siteUrl?: string): string {
-  const base = siteUrl || window.location.origin;
-  const articleUrl = article.slug ? `${base}/sisay_mengiste/article/${article.slug}` : base;
+  const base = siteUrl || (typeof window !== "undefined" ? window.location.origin : "");
+  const articleUrl = article.slug ? `${base}/#/article/${article.slug}` : base;
 
   return `
 [YERAS Media Network - Daily Briefing]

@@ -376,7 +376,7 @@ function ArticleEditor() {
 
           {!isNew && (
             <a
-              href={`/sisay_mengiste/article/${slug}`}
+              href={`/#/article/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
