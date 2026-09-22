@@ -4,6 +4,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { useSocialLinks } from "@/contexts/social-context";
 import { useContact } from "@/contexts/contact-context";
 import { useAds } from "@/contexts/ads-context";
+import { useTheme } from "@/contexts/theme-context";
 import { type SocialLinkItem } from "@/lib/social-links";
 import { type ContactSettings, DEFAULT_CONTACT_SETTINGS } from "@/lib/contact-settings";
 import {
@@ -63,10 +64,13 @@ import {
   Repeat,
   Film,
   Play,
+  Sun,
+  Moon,
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type SettingsTab = "cloudinary" | "social" | "contact" | "ads";
+type SettingsTab = "cloudinary" | "social" | "contact" | "ads" | "appearance";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettingsPage,
@@ -92,7 +96,7 @@ function AdminSettingsPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "social" || hash === "contact" || hash === "cloudinary" || hash === "ads") {
+      if (hash === "social" || hash === "contact" || hash === "cloudinary" || hash === "ads" || hash === "appearance") {
         setActiveTab(hash as SettingsTab);
       }
     }
@@ -111,13 +115,26 @@ function AdminSettingsPage() {
               {t("adminNavSettings")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Configure image storage, social media channels, contact details, and advertising banners.
+              Configure appearance theme, image storage, social media channels, contact details, and advertising banners.
             </p>
           </div>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 pt-4 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab("appearance")}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all border ${
+              activeTab === "appearance"
+                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Palette className="h-4 w-4" />
+            <span>Theme & Appearance</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("cloudinary")}
@@ -173,6 +190,7 @@ function AdminSettingsPage() {
       </div>
 
       {/* ── Active Tab Content ─────────────────────────────────── */}
+      {activeTab === "appearance" && <AppearanceSettingsTab />}
       {activeTab === "cloudinary" && <CloudinarySettingsTab />}
       {activeTab === "social" && <SocialSettingsTab />}
       {activeTab === "contact" && <ContactSettingsTab />}
@@ -1863,3 +1881,164 @@ function AdsSettingsTab() {
     </div>
   );
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   TAB 5: APPEARANCE & THEME SETTINGS
+   ═════════════════════════════════════════════════════════════════ */
+function AppearanceSettingsTab() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+        <div className="flex items-center gap-3 border-b border-border pb-4 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Palette className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Theme & Display Mode</h2>
+            <p className="text-xs text-muted-foreground">
+              Select your preferred color appearance for the administration dashboard and preview the public interface.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Light Mode Option */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setTheme("light");
+              toast.success("Light theme activated");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                setTheme("light");
+                toast.success("Light theme activated");
+              }
+            }}
+            className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 p-5 transition-all hover:shadow-md ${
+              theme === "light"
+                ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
+                : "border-border bg-card hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Sun className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Light Mode</h3>
+                  <p className="text-xs text-muted-foreground">Clean, high-contrast light background</p>
+                </div>
+              </div>
+              {theme === "light" && (
+                <span className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                  <Check className="h-3 w-3" /> Active
+                </span>
+              )}
+            </div>
+
+            {/* Visual Mini Mockup */}
+            <div className="rounded-xl border border-neutral-200 bg-white p-3 shadow-xs space-y-2 text-neutral-900 pointer-events-none select-none">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+                <div className="h-2.5 w-16 rounded bg-neutral-300" />
+                <div className="flex gap-1.5">
+                  <div className="h-2 w-8 rounded bg-neutral-200" />
+                  <div className="h-2 w-8 rounded bg-neutral-200" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-1/3 space-y-1.5 rounded-lg bg-neutral-50 p-2 border border-neutral-100">
+                  <div className="h-2 w-10 rounded bg-primary/60" />
+                  <div className="h-1.5 w-full rounded bg-neutral-200" />
+                  <div className="h-1.5 w-4/5 rounded bg-neutral-200" />
+                </div>
+                <div className="flex-1 space-y-1.5 rounded-lg bg-neutral-50 p-2 border border-neutral-100">
+                  <div className="h-2 w-16 rounded bg-neutral-800" />
+                  <div className="h-1.5 w-full rounded bg-neutral-200" />
+                  <div className="h-1.5 w-3/4 rounded bg-neutral-200" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dark Mode Option */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setTheme("dark");
+              toast.success("Dark theme activated");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                setTheme("dark");
+                toast.success("Dark theme activated");
+              }
+            }}
+            className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 p-5 transition-all hover:shadow-md ${
+              theme === "dark"
+                ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
+                : "border-border bg-card hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-500 dark:text-indigo-400">
+                  <Moon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Dark Mode</h3>
+                  <p className="text-xs text-muted-foreground">Relaxing, sleek dark theme for low light</p>
+                </div>
+              </div>
+              {theme === "dark" && (
+                <span className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                  <Check className="h-3 w-3" /> Active
+                </span>
+              )}
+            </div>
+
+            {/* Visual Mini Mockup */}
+            <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 shadow-xs space-y-2 text-neutral-100 pointer-events-none select-none">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                <div className="h-2.5 w-16 rounded bg-neutral-700" />
+                <div className="flex gap-1.5">
+                  <div className="h-2 w-8 rounded bg-neutral-800" />
+                  <div className="h-2 w-8 rounded bg-neutral-800" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-1/3 space-y-1.5 rounded-lg bg-neutral-900 p-2 border border-neutral-800">
+                  <div className="h-2 w-10 rounded bg-primary/70" />
+                  <div className="h-1.5 w-full rounded bg-neutral-700" />
+                  <div className="h-1.5 w-4/5 rounded bg-neutral-700" />
+                </div>
+                <div className="flex-1 space-y-1.5 rounded-lg bg-neutral-900 p-2 border border-neutral-800">
+                  <div className="h-2 w-16 rounded bg-neutral-200" />
+                  <div className="h-1.5 w-full rounded bg-neutral-700" />
+                  <div className="h-1.5 w-3/4 rounded bg-neutral-700" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Informational Card */}
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-foreground">Instant Synchronization</p>
+            <p className="mt-0.5">
+              Your theme selection is saved locally in your browser and automatically updates across both the Admin console and public news pages. You can also toggle theme anytime using the Sun/Moon button in the sidebar or mobile navigation header.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
