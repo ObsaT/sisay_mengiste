@@ -452,13 +452,6 @@ function MobileMenu({
 
         {/* Drawer footer */}
         <div className="border-t border-border px-5 py-4 bg-muted/20">
-          <Link
-            to="/admin"
-            onClick={onClose}
-            className="mb-3 block text-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90"
-          >
-            {t("adminDashboard")}
-          </Link>
           <SocialLinks className="justify-center" />
         </div>
       </div>
@@ -569,14 +562,6 @@ export function SiteHeader() {
                 <Search className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline text-[10px] opacity-70">⌘K</span>
               </button>
-
-              {/* Admin Portal Link */}
-              <Link
-                to="/admin"
-                className="hidden sm:inline-flex items-center rounded-full bg-primary/80 px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary transition-colors"
-              >
-                {t("admin")}
-              </Link>
             </div>
           </div>
         </div>

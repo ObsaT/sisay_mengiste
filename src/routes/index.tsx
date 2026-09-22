@@ -222,12 +222,6 @@ function Home() {
         ) : allPublished.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-16 text-center">
             <p className="text-lg font-medium text-muted-foreground">{t("noArticles")}</p>
-            <Link
-              to="/admin"
-              className="mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-            >
-              {t("adminDashboard")}
-            </Link>
           </div>
         ) : (
           <>

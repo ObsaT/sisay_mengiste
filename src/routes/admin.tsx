@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useMatches } from "@tanstac
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/contexts/language-context";
+import { useTheme } from "@/contexts/theme-context";
 import { type Language } from "@/lib/i18n";
 import {
   LayoutDashboard,
@@ -14,6 +15,8 @@ import {
   Check,
   ExternalLink,
   Users,
+  Sun,
+  Moon,
 } from "lucide-react";
 import logoImg from "@/assets/logo.jpg";
 
@@ -92,6 +95,7 @@ function AdminLanguageSelect({ compact = false }: { compact?: boolean }) {
 
 function AdminLayout() {
   const { user, loading, error, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const matches = useMatches();
@@ -113,21 +117,31 @@ function AdminLayout() {
 
   if (error && !isLoginPage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-        <div className="max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100">
-            <span className="text-2xl">⚠️</span>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <span className="text-xl font-bold">!</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground">Setup Required</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-          <div className="mt-6 rounded-lg bg-muted p-4 text-left text-xs text-muted-foreground">
-            <p className="mb-2 font-semibold">Steps:</p>
-            <ol className="list-inside list-decimal space-y-1">
-              <li>Create a Firebase project at console.firebase.google.com</li>
-              <li>Enable Authentication (Email/Password) and Firestore</li>
+          <h2 className="text-lg font-bold text-foreground">Configuration Required</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Firebase is not configured. Please add your credentials to the .env file.
+          </p>
+          <div className="mt-4 rounded-lg bg-muted p-4 text-left text-xs font-mono text-muted-foreground">
+            <p className="font-semibold text-foreground mb-2">Required .env variables:</p>
+            <ul className="space-y-1">
+              <li>VITE_FIREBASE_API_KEY</li>
+              <li>VITE_FIREBASE_AUTH_DOMAIN</li>
+              <li>VITE_FIREBASE_PROJECT_ID</li>
+              <li>VITE_FIREBASE_STORAGE_BUCKET</li>
+              <li>VITE_FIREBASE_MESSAGING_SENDER_ID</li>
+              <li>VITE_FIREBASE_APP_ID</li>
+            </ul>
+          </div>
+          <div className="mt-4 text-xs text-muted-foreground">
+            <p>After creating or updating your .env file:</p>
+            <ol className="list-decimal list-inside mt-1 space-y-1">
               <li>
-                Copy your web app config into the{" "}
-                <code className="rounded bg-background px-1">.env</code> file
+                Copy from <code className="bg-muted px-1 py-0.5 rounded">.env.example</code>
               </li>
               <li>Restart the dev server</li>
             </ol>
@@ -170,17 +184,32 @@ function AdminLayout() {
       <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:flex lg:flex-col justify-between">
         <div>
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <Link to="/admin" className="flex items-center gap-2 group">
+            <Link to="/admin" className="flex items-center gap-2 group min-w-0">
               <img
                 src={logoImg}
                 alt="የራስ"
-                className="h-8 w-auto object-contain bg-white rounded p-0.5 shadow-xs"
+                className="h-8 w-auto object-contain bg-white rounded p-0.5 shadow-xs shrink-0"
               />
-              <span className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+              <span className="font-display text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
                 የራስ Admin
               </span>
             </Link>
-            <AdminLanguageSelect compact />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/80 text-foreground transition-all hover:bg-muted"
+                title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                aria-label="Toggle theme mode"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4 text-amber-500" />
+                ) : (
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              <AdminLanguageSelect compact />
+            </div>
           </div>
 
           <nav className="px-3 py-4">
@@ -215,6 +244,7 @@ function AdminLayout() {
         </div>
 
         <div className="border-t border-border p-4 space-y-3">
+          {/* User profile & View site */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 truncate">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -231,6 +261,25 @@ function AdminLayout() {
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
+          </div>
+
+          {/* Theme Mode Switcher */}
+          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
+            <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              {theme === "dark" ? (
+                <Moon className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Sun className="h-3.5 w-3.5 text-amber-500" />
+              )}
+              <span>{theme === "dark" ? "Dark Theme" : "Light Theme"}</span>
+            </span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-muted transition-colors shadow-2xs"
+            >
+              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            </button>
           </div>
 
           <button
@@ -256,6 +305,19 @@ function AdminLayout() {
             <span className="font-display text-sm font-bold">የራስ Admin</span>
           </Link>
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-all hover:bg-muted"
+              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle theme mode"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-amber-500" />
+              ) : (
+                <Moon className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
             <AdminLanguageSelect compact />
             {navItems.map((item) => (
               <Link

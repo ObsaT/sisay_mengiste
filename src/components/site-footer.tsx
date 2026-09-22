@@ -187,9 +187,6 @@ export function SiteFooter() {
             <Link to="/" className="hover:text-gold transition-colors">
               {t("home")}
             </Link>
-            <Link to="/admin" className="hover:text-gold transition-colors">
-              {t("admin")}
-            </Link>
           </div>
         </div>
       </div>
