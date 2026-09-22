@@ -5,7 +5,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
 export default defineConfig({
-  base: "/sisay_mengiste/",
+  base: process.env.GITHUB_PAGES === "true" ? "/sisay_mengiste/" : "/",
   plugins: [
     TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
     react(),
