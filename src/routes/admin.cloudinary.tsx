@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CloudinaryAuthGate } from "@/components/cloudinary-auth-gate";
 
 export const Route = createFileRoute("/admin/cloudinary")({
   component: AdminCloudinaryPage,
@@ -165,8 +166,10 @@ function AdminCloudinaryPage() {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+      <CloudinaryAuthGate>
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
           <button
             type="button"
             onClick={handleReset}
@@ -196,7 +199,6 @@ function AdminCloudinaryPage() {
             {saving ? "Saving..." : hasChanges ? "Save Changes *" : "Saved"}
           </button>
         </div>
-      </div>
 
       {/* ── Test Result Banner (if tested) ────────────────────── */}
       {testResult && (
@@ -387,6 +389,7 @@ function AdminCloudinaryPage() {
           </div>
         </div>
       </div>
+      </CloudinaryAuthGate>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   generateAdId,
 } from "@/lib/ads-settings";
 import { uploadToCloudinary } from "@/lib/cloudinary-service";
+import { CloudinaryAuthGate } from "@/components/cloudinary-auth-gate";
 import { SocialIcon } from "@/components/social-icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AdBanner } from "@/components/ad-banner";
@@ -320,7 +321,8 @@ function CloudinarySettingsTab() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <CloudinaryAuthGate>
+      <div className="space-y-6 animate-fade-in">
       {/* Test Result Banner */}
       {testResult && (
         <div
@@ -475,6 +477,7 @@ function CloudinarySettingsTab() {
         </p>
       </div>
     </div>
+    </CloudinaryAuthGate>
   );
 }
 
