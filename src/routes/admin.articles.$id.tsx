@@ -17,7 +17,11 @@ import { ImageUpload } from "@/components/image-upload";
 import { BroadcastModal } from "@/components/broadcast-modal";
 import { YouTubeModal } from "@/components/youtube-modal";
 import { fetchSubscribers, type Subscriber } from "@/lib/subscribers-service";
-import { getYouTubeEmbedUrl, type YouTubeVideoItem } from "@/lib/youtube-service";
+import {
+  getYouTubeEmbedUrl,
+  extractYouTubeVideoId,
+  type YouTubeVideoItem,
+} from "@/lib/youtube-service";
 import {
   Save,
   ArrowLeft,
@@ -36,6 +40,7 @@ import {
   Send,
   Video,
   Play,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,7 +85,40 @@ function ArticleEditor() {
   // YouTube Video Article state
   const [videoUrl, setVideoUrl] = useState("");
   const [youtubeVideoId, setYoutubeVideoId] = useState("");
+  const [directVideoInput, setDirectVideoInput] = useState("");
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
+
+  // Check if current selected section is the Video category
+  const isVideoSection =
+    section === "ቪዲዮ" ||
+    section.toLowerCase().includes("video") ||
+    section.toLowerCase().includes("viidiyoo");
+
+  const handleSectionChange = (newSec: string) => {
+    setSection(newSec);
+    const isVideo =
+      newSec === "ቪዲዮ" ||
+      newSec.toLowerCase().includes("video") ||
+      newSec.toLowerCase().includes("viidiyoo");
+
+    // Video is only required when choosing the video category
+    if (isVideo && !youtubeVideoId.trim() && !videoUrl.trim()) {
+      toast.info("A YouTube video is required when selecting the 'Video' category. Please attach or choose a video.", {
+        duration: 4000,
+      });
+      setYoutubeModalOpen(true);
+    }
+  };
+
+  const handleDirectVideoInputChange = (val: string) => {
+    setDirectVideoInput(val);
+    const id = extractYouTubeVideoId(val);
+    if (id) {
+      setYoutubeVideoId(id);
+      setVideoUrl(`https://www.youtube.com/watch?v=${id}`);
+      toast.success("YouTube video attached!");
+    }
+  };
 
   // Multilingual translations state
   const [translations, setTranslations] = useState<Partial<Record<Language, ArticleTranslation>>>(
@@ -107,6 +145,7 @@ function ArticleEditor() {
   const handleSelectYouTubeVideo = (video: YouTubeVideoItem) => {
     setYoutubeVideoId(video.id);
     setVideoUrl(video.videoUrl);
+    setDirectVideoInput(video.videoUrl);
 
     // Auto-fill title if current title is empty
     if (!title.trim()) {
@@ -143,8 +182,16 @@ function ArticleEditor() {
             setBreaking(article.breaking);
             setMostRead(article.mostRead);
             setOpinion(article.opinion);
-            if (article.videoUrl) setVideoUrl(article.videoUrl);
-            if (article.youtubeVideoId) setYoutubeVideoId(article.youtubeVideoId);
+            if (article.videoUrl) {
+              setVideoUrl(article.videoUrl);
+              setDirectVideoInput(article.videoUrl);
+            }
+            if (article.youtubeVideoId) {
+              setYoutubeVideoId(article.youtubeVideoId);
+              if (!article.videoUrl) {
+                setDirectVideoInput(`https://www.youtube.com/watch?v=${article.youtubeVideoId}`);
+              }
+            }
             if (article.translations) {
               setTranslations(article.translations);
             }
@@ -211,6 +258,13 @@ function ArticleEditor() {
     }
     if (!excerpt.trim()) {
       toast.error("Excerpt is required.");
+      return;
+    }
+
+    // Video is strictly required ONLY when selecting the Video dropdown
+    if (isVideoSection && !youtubeVideoId.trim() && !videoUrl.trim()) {
+      toast.error("A YouTube video is required when selecting the 'Video' category. Please attach or choose a video.");
+      setYoutubeModalOpen(true);
       return;
     }
 
@@ -432,12 +486,23 @@ function ArticleEditor() {
           {/* Section + Author + Primary Language */}
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Section *</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground flex items-center justify-between">
+                <span>Section / Category *</span>
+                {isVideoSection && (
+                  <span className="text-[10px] font-bold text-red-600 bg-red-600/10 px-2 py-0.5 rounded-full border border-red-600/20">
+                    🎬 Video Required
+                  </span>
+                )}
+              </label>
               <select
                 value={section}
-                onChange={(e) => setSection(e.target.value)}
+                onChange={(e) => handleSectionChange(e.target.value)}
                 required
-                className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className={`w-full rounded-lg border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 ${
+                  isVideoSection
+                    ? "border-red-500/60 focus:border-red-600 focus:ring-red-600/20"
+                    : "border-border focus:border-primary focus:ring-primary/20"
+                }`}
               >
                 {SECTIONS.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -479,37 +544,99 @@ function ArticleEditor() {
           </div>
 
           {/* ── YouTube Video Article Integration ──────────────── */}
-          <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs space-y-3">
+          <div
+            className={`rounded-2xl border transition-all p-4 sm:p-5 shadow-xs space-y-3 ${
+              isVideoSection
+                ? youtubeVideoId
+                  ? "border-red-600/40 bg-card"
+                  : "border-red-600/70 bg-red-500/5 ring-2 ring-red-500/20"
+                : "border-border/80 bg-card"
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600/10 text-red-600 border border-red-600/20 font-bold">
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl font-bold ${
+                    isVideoSection
+                      ? "bg-red-600/15 text-red-600 border border-red-600/30"
+                      : "bg-muted text-muted-foreground border border-border"
+                  }`}
+                >
                   <Video className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 flex-wrap">
                     <span>YouTube Video Article</span>
-                    {youtubeVideoId && (
-                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
-                        Linked
+                    {isVideoSection ? (
+                      youtubeVideoId ? (
+                        <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                          Linked (Required)
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-red-600/15 text-red-600 border border-red-600/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                          Required for Video Section *
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground font-normal">
+                        (Optional for written articles)
                       </span>
                     )}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {youtubeVideoId
+                    {isVideoSection
+                      ? youtubeVideoId
+                        ? "Video is linked and will be displayed prominently with the video player on the site."
+                        : "You selected the 'Video' category in the dropdown. Attaching a YouTube video is required before saving."
+                      : youtubeVideoId
                       ? "This article embeds a responsive YouTube video player."
-                      : "Choose from your YouTube video list or paste a link to turn this into a video article."}
+                      : "Optional: Choose from your video list or paste a link if this story includes video."}
                   </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setYoutubeModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-red-600/30 bg-red-600/10 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-600/20 transition-all cursor-pointer shrink-0"
-              >
-                <Video className="h-3.5 w-3.5" />
-                <span>{youtubeVideoId ? "Change Video" : "🎬 Choose from YouTube Video List"}</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setYoutubeModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl border border-red-600/30 bg-red-600/10 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-600/20 transition-all cursor-pointer shrink-0"
+                >
+                  <Video className="h-3.5 w-3.5" />
+                  <span>{youtubeVideoId ? "Change Video" : "🎬 Choose from Video List"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* If video category is selected but no video is chosen yet, display prominent alert */}
+            {isVideoSection && !youtubeVideoId && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-red-700 dark:text-red-300">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+                  <span>
+                    <strong>Video is required:</strong> The &quot;Video&quot; category is selected. Please choose from your YouTube list or paste a link below.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setYoutubeModalOpen(true)}
+                  className="rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  Select Video Now
+                </button>
+              </div>
+            )}
+
+            {/* Quick URL or ID paste input */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Or paste YouTube link / Video ID directly (e.g. https://www.youtube.com/watch?v=...)"
+                  value={directVideoInput}
+                  onChange={(e) => handleDirectVideoInputChange(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600/30"
+                />
+              </div>
             </div>
 
             {/* Active Video Preview Player */}
@@ -546,6 +673,7 @@ function ArticleEditor() {
                     onClick={() => {
                       setYoutubeVideoId("");
                       setVideoUrl("");
+                      setDirectVideoInput("");
                       toast.info("Video link removed.");
                     }}
                     className="text-xs font-semibold text-destructive hover:underline cursor-pointer"
