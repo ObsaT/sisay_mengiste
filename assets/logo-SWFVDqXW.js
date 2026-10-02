@@ -1,0 +1,1 @@
+var e=`/sisay_mengiste/assets/logo-BDguZwU_.jpg`;export{e as t};
