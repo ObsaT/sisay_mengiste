@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { ArticleImportModal } from "@/components/article-import-modal";
+import { type ScrapedArticle } from "@/lib/scraper-service";
 import {
   getArticles,
   deleteArticle,
@@ -49,6 +51,13 @@ function ArticlesList() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleImportArticle = (scraped: ScrapedArticle) => {
+    sessionStorage.setItem("imported_scraped_article", JSON.stringify(scraped));
+    navigate({ to: "/admin/articles/$id", params: { id: "new" } });
+  };
 
   const loadArticles = () => {
     setLoading(true);
@@ -254,6 +263,17 @@ function ArticlesList() {
               <span>Delete All Articles</span>
             </button>
           )}
+
+          {/* Import Article from URL */}
+          <button
+            type="button"
+            onClick={() => setImportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-2xs"
+            title="Import and scrape article from any news link"
+          >
+            <Globe className="h-4 w-4" />
+            <span>Import from URL</span>
+          </button>
 
           {/* New Article Link */}
           <Link
@@ -559,6 +579,13 @@ function ArticlesList() {
         confirmLabel={batchDeleting ? "Deleting..." : `Delete ${selectedIds.size} Articles`}
         variant="destructive"
         onConfirm={handleDeleteSelected}
+      />
+
+      {/* Web Scraper Article Import Modal */}
+      <ArticleImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImportArticle}
       />
     </div>
   );

@@ -41,8 +41,11 @@ import {
   Video,
   Play,
   AlertCircle,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ArticleImportModal } from "@/components/article-import-modal";
+import { type ScrapedArticle } from "@/lib/scraper-service";
 
 export const Route = createFileRoute("/admin/articles/$id")({
   component: ArticleEditor,
@@ -87,6 +90,15 @@ function ArticleEditor() {
   const [youtubeVideoId, setYoutubeVideoId] = useState("");
   const [directVideoInput, setDirectVideoInput] = useState("");
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  const handleImportScrapedArticle = (scraped: ScrapedArticle) => {
+    if (scraped.title) setTitle(scraped.title);
+    if (scraped.excerpt) setExcerpt(scraped.excerpt);
+    if (scraped.content) setContent(scraped.content);
+    if (scraped.image && !image.trim()) setImage(scraped.image);
+    if (scraped.author && !author.trim()) setAuthor(scraped.author);
+  };
 
   // Strictly check if current selected section is the Video category
   const isVideoSection =
@@ -184,6 +196,23 @@ function ArticleEditor() {
         })
         .catch(console.error)
         .finally(() => setLoading(false));
+    } else {
+      // Check if arriving from articles list with a pre-scraped article
+      const importedRaw = sessionStorage.getItem("imported_scraped_article");
+      if (importedRaw) {
+        try {
+          const scraped = JSON.parse(importedRaw) as ScrapedArticle;
+          sessionStorage.removeItem("imported_scraped_article");
+          if (scraped.title) setTitle(scraped.title);
+          if (scraped.excerpt) setExcerpt(scraped.excerpt);
+          if (scraped.content) setContent(scraped.content);
+          if (scraped.image) setImage(scraped.image);
+          if (scraped.author) setAuthor(scraped.author);
+          toast.success("Loaded imported article from web scraper!");
+        } catch (e) {
+          console.error(e);
+        }
+      }
     }
   }, [id, isNew]);
 
@@ -357,6 +386,17 @@ function ArticleEditor() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Web Scraper Import Button */}
+          <button
+            type="button"
+            onClick={() => setImportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-2xs"
+            title="Import and scrape article content from any news link"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>Import from URL</span>
+          </button>
+
           {/* Status Badge Toggle */}
           <button
             type="button"
@@ -455,6 +495,30 @@ function ArticleEditor() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isNew && !title && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5 text-xs text-muted-foreground animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Import Existing News Story</span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Paste any news link to automatically extract the headline, cover photo, excerpt, and article body.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportModalOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shrink-0 cursor-pointer shadow-xs"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                <span>Import from URL</span>
+              </button>
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Title *</label>
@@ -1052,6 +1116,13 @@ function ArticleEditor() {
         onOpenChange={setYoutubeModalOpen}
         onSelectVideo={handleSelectYouTubeVideo}
         currentVideoId={youtubeVideoId}
+      />
+
+      {/* Web Scraper Article Import Modal */}
+      <ArticleImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImportScrapedArticle}
       />
     </div>
   );
