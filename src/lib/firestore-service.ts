@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   writeBatch,
   query,
   orderBy,
@@ -272,10 +273,20 @@ export async function getArticle(id: string): Promise<Article | null> {
   return toArticle(snap);
 }
 
+function cleanFirestoreData<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 export async function createArticle(data: ArticleInput): Promise<string> {
   const readTime = estimateReadTime(data.content ?? "");
   invalidateCache();
-  const docRef = await addDoc(collection(db, ARTICLES_COLLECTION), {
+  const cleanedPayload = cleanFirestoreData({
     ...data,
     slug: articleSlug(data.title),
     readTime,
@@ -283,6 +294,7 @@ export async function createArticle(data: ArticleInput): Promise<string> {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  const docRef = await addDoc(collection(db, ARTICLES_COLLECTION), cleanedPayload);
   return docRef.id;
 }
 
@@ -293,8 +305,18 @@ export async function updateArticle(id: string, data: Partial<ArticleInput>): Pr
   };
   if (data.title) updates["slug"] = articleSlug(data.title);
   if (data.content !== undefined) updates["readTime"] = estimateReadTime(data.content ?? "");
+
+  // If videoUrl or youtubeVideoId was explicitly removed or undefined, delete field from document
+  if (data.videoUrl === "" || data.videoUrl === undefined) {
+    updates["videoUrl"] = deleteField();
+  }
+  if (data.youtubeVideoId === "" || data.youtubeVideoId === undefined) {
+    updates["youtubeVideoId"] = deleteField();
+  }
+
+  const cleanedUpdates = cleanFirestoreData(updates);
   invalidateCache();
-  await updateDoc(doc(db, ARTICLES_COLLECTION, id), updates);
+  await updateDoc(doc(db, ARTICLES_COLLECTION, id), cleanedUpdates);
 }
 
 export async function deleteArticle(id: string): Promise<void> {

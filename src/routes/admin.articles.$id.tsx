@@ -314,8 +314,8 @@ function ArticleEditor() {
         .filter(Boolean),
       readTime: estimateReadTime(content),
       viewCount: 0,
-      videoUrl: videoUrl.trim() || undefined,
-      youtubeVideoId: youtubeVideoId.trim() || undefined,
+      ...(videoUrl.trim() ? { videoUrl: videoUrl.trim() } : {}),
+      ...(youtubeVideoId.trim() ? { youtubeVideoId: youtubeVideoId.trim() } : {}),
     };
 
     try {
