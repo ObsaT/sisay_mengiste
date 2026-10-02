@@ -88,26 +88,14 @@ function ArticleEditor() {
   const [directVideoInput, setDirectVideoInput] = useState("");
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
 
-  // Check if current selected section is the Video category
+  // Strictly check if current selected section is the Video category
   const isVideoSection =
     section === "ቪዲዮ" ||
-    section.toLowerCase().includes("video") ||
-    section.toLowerCase().includes("viidiyoo");
+    section.trim().toLowerCase() === "video" ||
+    section.trim().toLowerCase() === "viidiyoo";
 
   const handleSectionChange = (newSec: string) => {
     setSection(newSec);
-    const isVideo =
-      newSec === "ቪዲዮ" ||
-      newSec.toLowerCase().includes("video") ||
-      newSec.toLowerCase().includes("viidiyoo");
-
-    // Video is only required when choosing the video category
-    if (isVideo && !youtubeVideoId.trim() && !videoUrl.trim()) {
-      toast.info("A YouTube video is required when selecting the 'Video' category. Please attach or choose a video.", {
-        duration: 4000,
-      });
-      setYoutubeModalOpen(true);
-    }
   };
 
   const handleDirectVideoInputChange = (val: string) => {
@@ -157,11 +145,8 @@ function ArticleEditor() {
       setImage(video.thumbnailUrl);
     }
 
-    // Auto-select "ቪዲዮ" section if available
-    const videoSec = SECTIONS.find((s) => s.value === "ቪዲዮ" || s.label.toLowerCase().includes("video"));
-    if (videoSec) {
-      setSection(videoSec.value);
-    }
+    // Keep the article's existing section (Politics, Business, News, etc.)
+    // Attaching a video to non-video news is completely optional.
   };
 
   useEffect(() => {
@@ -570,16 +555,20 @@ function ArticleEditor() {
                     {isVideoSection ? (
                       youtubeVideoId ? (
                         <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                          Linked (Required)
+                          Linked (Required for Video Category)
                         </span>
                       ) : (
                         <span className="rounded-full bg-red-600/15 text-red-600 border border-red-600/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                          Required for Video Section *
+                          Required for Video Category *
                         </span>
                       )
+                    ) : youtubeVideoId ? (
+                      <span className="rounded-full bg-green-500/15 text-green-700 dark:text-green-300 border border-green-500/30 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+                        Video Attached (Optional for {section})
+                      </span>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground font-normal">
-                        (Optional for written articles)
+                      <span className="rounded-full bg-muted border border-border px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Optional for {section}
                       </span>
                     )}
                   </h3>
@@ -587,10 +576,10 @@ function ArticleEditor() {
                     {isVideoSection
                       ? youtubeVideoId
                         ? "Video is linked and will be displayed prominently with the video player on the site."
-                        : "You selected the 'Video' category in the dropdown. Attaching a YouTube video is required before saving."
+                        : "You selected the 'Video' category. Attaching a YouTube video is required before saving in this category."
                       : youtubeVideoId
-                      ? "This article embeds a responsive YouTube video player."
-                      : "Optional: Choose from your video list or paste a link if this story includes video."}
+                      ? `Optional video attached: This ${section} article will include an embedded video player alongside the text.`
+                      : `Optional: You can attach a video to this ${section} article or leave it empty — it is entirely your choice.`}
                   </p>
                 </div>
               </div>
